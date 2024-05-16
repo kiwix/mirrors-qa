@@ -1,0 +1,5 @@
+*.vim
+.env
+.venv
+wireguard
+__pycache__

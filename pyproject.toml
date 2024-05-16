@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "speedtest"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+
+authors = [{ name = "Kiwix", email = "dev@kiwix.org" }]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "click~=8.1",
+  "humanfriendly==10.0.0",
+  "requests~=2.31",
+]
+
+[project.urls]
+Documentation = "https://github.com/kiwix/mirrors-qa#readme"
+Issues = "https://github.com/kiwix/mirrors-qa/issues"
+Source = "https://github.com/kiwix/mirrors-qa"
+
+[project.scripts]
+speedtest = "speedtest.cli:speedtest"
+
+[tool.hatch.version]
+path = "src/speedtest/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/speedtest tests}"
+
+[tool.coverage.run]
+source_pkgs = ["speedtest", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/speedtest/__about__.py",
+]
+
+[tool.coverage.paths]
+speedtest = ["src/speedtest", "*/speedtest/src/speedtest"]
+tests = ["tests", "*/speedtest/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

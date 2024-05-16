@@ -1,0 +1,33 @@
+services:
+  speedtest:
+    build:
+      context: .
+    container_name: speedtest
+    depends_on:
+      wireguard:
+        condition: service_healthy
+    network_mode: "service:wireguard"
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wg", "show", "wg0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
