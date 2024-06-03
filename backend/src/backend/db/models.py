@@ -122,6 +122,7 @@ class Test(Base):
     error: Mapped[Optional[str]]
     ip_address: Mapped[Optional[IPv4Address]]
     asn: Mapped[Optional[str]]
+    isp: Mapped[Optional[str]]
     location: Mapped[Optional[str]]
     latency: Mapped[Optional[int]]  # milliseconds
     download_size: Mapped[Optional[int]]  # bytes
