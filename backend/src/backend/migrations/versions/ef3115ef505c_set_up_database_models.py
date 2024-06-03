@@ -1,22 +1,20 @@
 """set up database models
 
-Revision ID: d45beab913d1
+Revision ID: ef3115ef505c
 Revises:
-Create Date: 2024-06-03 07:46:35.661038
+Create Date: 2024-06-03 15:53:20.253276
 
 """
-
-from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "d45beab913d1"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = "ef3115ef505c"
+down_revision = None
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
@@ -37,8 +35,10 @@ def upgrade() -> None:
             nullable=True,
         ),
         sa.Column("error", postgresql.CITEXT(), nullable=True),
+        sa.Column("isp", postgresql.CITEXT(), nullable=True),
         sa.Column("ip_address", postgresql.INET(), nullable=True),
         sa.Column("asn", postgresql.CITEXT(), nullable=True),
+        sa.Column("country", postgresql.CITEXT(), nullable=True),
         sa.Column("location", postgresql.CITEXT(), nullable=True),
         sa.Column("latency", sa.Integer(), nullable=True),
         sa.Column("download_size", sa.Integer(), nullable=True),
@@ -55,7 +55,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("auth_info", postgresql.CITEXT(), nullable=False),
-        sa.Column("last_seen", sa.DateTime(), nullable=True),
+        sa.Column("last_seen_on", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_worker")),
     )
     op.create_table(
@@ -71,9 +71,9 @@ def upgrade() -> None:
     )
     op.create_table(
         "mirror",
+        sa.Column("id", postgresql.CITEXT(), nullable=False),
         sa.Column("base_url", postgresql.CITEXT(), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False),
-        sa.Column("id", postgresql.CITEXT(), nullable=True),
         sa.Column("region", postgresql.CITEXT(), nullable=True),
         sa.Column("asn", postgresql.CITEXT(), nullable=True),
         sa.Column("score", sa.Integer(), nullable=True),
@@ -91,7 +91,7 @@ def upgrade() -> None:
             ["country.code"],
             name=op.f("fk_mirror_country_code_country"),
         ),
-        sa.PrimaryKeyConstraint("base_url", name=op.f("pk_mirror")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_mirror")),
     )
     # ### end Alembic commands ###
 

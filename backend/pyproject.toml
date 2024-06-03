@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mirrors_qa_backend"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.13"
 description = "mirrors-qa Backend API"
 readme = "README.md"
 authors = [
@@ -21,7 +21,7 @@ dependencies = [
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
 ]
 
@@ -74,9 +74,6 @@ features = ["dev"]
 [tool.hatch.envs.test]
 features = ["scripts", "test"]
 
-[[tool.hatch.envs.test.matrix]]
-python = ["3.11", "3.12"]
-
 [tool.hatch.envs.test.scripts]
 run = "inv test --args '{args}'"
 run-cov = "inv test-cov --args '{args}'"
@@ -106,10 +103,10 @@ all = "inv checkall --args '{args}'"
 
 [tool.black]
 line-length = 88
-target-version = ['py310']
+target-version = ['py312']
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 88
 src = ["src"]
 
@@ -184,8 +181,6 @@ ignore = [
   "S603",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
-  # Allow use of typing.Optional, typing.List for type annotations
-  "UP007", "UP035", "UP006"
 ]
 unfixable = [
   # Don't touch unused imports
@@ -234,6 +229,6 @@ exclude_lines = [
 include = ["src", "tests", "tasks.py"]
 exclude = [".env/**", ".venv/**"]
 extraPaths = ["src"]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 typeCheckingMode="strict"
 disableBytesTypePromotions = true

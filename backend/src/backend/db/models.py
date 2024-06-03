@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
 from ipaddress import IPv4Address
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, text
@@ -23,10 +24,10 @@ class Base(MappedAsDataclass, DeclarativeBase):
     # type has to be used.
 
     type_annotation_map = {  # noqa: RUF012
-        str: CITEXT,  # transform Python str to PostgreSQL CITEXT
-        List[str]: ARRAY(
+        str: CITEXT,  # use case-insensitive strings on PostgreSQL backend
+        list[str]: ARRAY(
             item_type=CITEXT
-        ),  # transform Python List[str] into PostgreSQL Array of strings
+        ),  # transform Python list[str] into PostgreSQL Array of strings
         datetime: DateTime(
             timezone=False
         ),  # transform Python datetime into PostgreSQL Datetime without timezone
@@ -50,16 +51,15 @@ class Base(MappedAsDataclass, DeclarativeBase):
 class Country(Base):
     __tablename__ = "country"
 
-    code: Mapped[str] = mapped_column(primary_key=True)
-    name: Mapped[str]
+    code: Mapped[str] = mapped_column(
+        primary_key=True
+    )  # two-letter country codes as defined in ISO 3166-1
 
-    worker_id: Mapped[Optional[UUID]] = mapped_column(
-        ForeignKey("worker.id"), init=False
-    )
-    worker: Mapped[Optional["Worker"]] = relationship(
-        back_populates="countries", init=False
-    )
-    mirrors: Mapped[List["Mirror"]] = relationship(
+    name: Mapped[str]  # full name of the country (in English)
+
+    worker_id: Mapped[UUID | None] = mapped_column(ForeignKey("worker.id"), init=False)
+    worker: Mapped[Worker | None] = relationship(back_populates="countries", init=False)
+    mirrors: Mapped[list[Mirror]] = relationship(
         back_populates="country",
         init=False,
         cascade="all, delete-orphan",
@@ -71,25 +71,25 @@ class Country(Base):
 class Mirror(Base):
     __tablename__ = "mirror"
 
-    base_url: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True)  # hostname of a mirror URL
+    base_url: Mapped[str]
     enabled: Mapped[bool]
     # metadata of a mirror from MirroBrain (https://mirrorbrain-docs.readthedocs.io/en/latest/mirrors.html#displaying-details-about-a-mirror)
-    id: Mapped[Optional[str]]
-    region: Mapped[Optional[str]]
-    asn: Mapped[Optional[str]]
-    score: Mapped[Optional[int]]
-    latitude: Mapped[Optional[float]]
-    longitude: Mapped[Optional[float]]
-    country_only: Mapped[Optional[bool]]
-    region_only: Mapped[Optional[bool]]
-    as_only: Mapped[Optional[bool]]
-    other_countries: Mapped[Optional[List[str]]]
+    region: Mapped[str | None]
+    asn: Mapped[str | None]
+    score: Mapped[int | None]
+    latitude: Mapped[float | None]
+    longitude: Mapped[float | None]
+    country_only: Mapped[bool | None]
+    region_only: Mapped[bool | None]
+    as_only: Mapped[bool | None]
+    other_countries: Mapped[list[str] | None]
 
     country_code: Mapped[str] = mapped_column(
         ForeignKey("country.code"),
         init=False,
     )
-    country: Mapped["Country"] = relationship(back_populates="mirrors", init=False)
+    country: Mapped[Country] = relationship(back_populates="mirrors", init=False)
 
 
 class Worker(Base):
@@ -97,11 +97,11 @@ class Worker(Base):
     id: Mapped[UUID] = mapped_column(
         init=False, primary_key=True, server_default=text("uuid_generate_v4()")
     )
+    # RSA public key for generating access tokens needed to make request to
+    # the web server
     auth_info: Mapped[str]
-    last_seen: Mapped[Optional[datetime]]
-    countries: Mapped[List["Country"]] = relationship(
-        back_populates="worker", init=False
-    )
+    last_seen_on: Mapped[datetime | None]
+    countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
 
 class Test(Base):
@@ -110,8 +110,8 @@ class Test(Base):
         init=False, primary_key=True, server_default=text("uuid_generate_v4()")
     )
     requested_on: Mapped[datetime]
-    started_on: Mapped[Optional[datetime]]
-    status: Mapped[Optional[StatusEnum]] = mapped_column(
+    started_on: Mapped[datetime | None]
+    status: Mapped[StatusEnum | None] = mapped_column(
         Enum(
             native_enum=False,
             validate_strings=True,
@@ -119,12 +119,13 @@ class Test(Base):
             name="status",
         )
     )
-    error: Mapped[Optional[str]]
-    ip_address: Mapped[Optional[IPv4Address]]
-    asn: Mapped[Optional[str]]
-    isp: Mapped[Optional[str]]
-    location: Mapped[Optional[str]]
-    latency: Mapped[Optional[int]]  # milliseconds
-    download_size: Mapped[Optional[int]]  # bytes
-    duration: Mapped[Optional[int]]  # seconds
-    speed: Mapped[Optional[float]]  # bytes per second
+    error: Mapped[str | None]
+    isp: Mapped[str | None]
+    ip_address: Mapped[IPv4Address | None]
+    asn: Mapped[str | None]  # autonomous system based on IP
+    country: Mapped[str | None]  # country based on IP
+    location: Mapped[str | None]  # city based on IP
+    latency: Mapped[int | None]  # milliseconds
+    download_size: Mapped[int | None]  # bytes
+    duration: Mapped[int | None]  # seconds
+    speed: Mapped[float | None]  # bytes per second

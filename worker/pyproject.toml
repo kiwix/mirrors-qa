@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mirrors_qa_worker"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.13"
 description = "mirrors-qa Worker"
 readme = "README.md"
 authors = [
@@ -17,7 +17,7 @@ dependencies = [
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
 ]
 
@@ -70,8 +70,6 @@ features = ["dev"]
 [tool.hatch.envs.test]
 features = ["scripts", "test"]
 
-[[tool.hatch.envs.test.matrix]]
-python = ["3.10", "3.11"]
 
 [tool.hatch.envs.test.scripts]
 run = "inv test --args '{args}'"
@@ -228,6 +226,6 @@ exclude_lines = [
 include = ["src", "tests", "tasks.py"]
 exclude = [".env/**", ".venv/**"]
 extraPaths = ["src"]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 typeCheckingMode="strict"
 disableBytesTypePromotions = true
