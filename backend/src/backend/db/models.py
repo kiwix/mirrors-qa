@@ -4,8 +4,8 @@ from datetime import datetime
 from ipaddress import IPv4Address
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import ARRAY, CITEXT, INET
+from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import ARRAY, INET
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -24,9 +24,8 @@ class Base(MappedAsDataclass, DeclarativeBase):
     # type has to be used.
 
     type_annotation_map = {  # noqa: RUF012
-        str: CITEXT,  # use case-insensitive strings on PostgreSQL backend
         list[str]: ARRAY(
-            item_type=CITEXT
+            item_type=String
         ),  # transform Python list[str] into PostgreSQL Array of strings
         datetime: DateTime(
             timezone=False
@@ -57,7 +56,7 @@ class Country(Base):
 
     name: Mapped[str]  # full name of the country (in English)
 
-    worker_id: Mapped[UUID | None] = mapped_column(ForeignKey("worker.id"), init=False)
+    worker_id: Mapped[str | None] = mapped_column(ForeignKey("worker.id"), init=False)
     worker: Mapped[Worker | None] = relationship(back_populates="countries", init=False)
     mirrors: Mapped[list[Mirror]] = relationship(
         back_populates="country",
@@ -94,12 +93,12 @@ class Mirror(Base):
 
 class Worker(Base):
     __tablename__ = "worker"
-    id: Mapped[UUID] = mapped_column(
-        init=False, primary_key=True, server_default=text("uuid_generate_v4()")
-    )
-    # RSA public key for generating access tokens needed to make request to
-    # the web server
-    auth_info: Mapped[str]
+    id: Mapped[str] = mapped_column(primary_key=True)
+    # RSA public key in PKCS8 format for generating access tokens required
+    # to make requests to the web server
+    pubkey_pkcs8: Mapped[str]
+    pubkey_fingerprint: Mapped[str | None]
+
     last_seen_on: Mapped[datetime | None]
     countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
