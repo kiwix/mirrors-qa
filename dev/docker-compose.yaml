@@ -1,0 +1,45 @@
+services:
+  postgresdb:
+    image: postgres:16-bookworm
+    container_name: mirrors-qa-postgresdb
+    volumes:
+      - pg-data-mirrors-qa:/var/lib/postgresql/data
+      - ./postgres-initdb:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_DB=mirrors_qa
+      - POSTGRES_USER=mirrors_qa
+      - POSTGRES_PASSWORD=mirrors_qa
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "dbname=mirrors_qa user=mirrors_qa"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - mirrors-qa-network
+  backend:
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    build:
+      context: ../backend
+    container_name: mirrors-qa-backend
+    environment:
+      POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
+    networks:
+      - mirrors-qa-network
+    ports:
+      - 8000:8000
+  worker_manager:
+    build:
+      context: ../worker
+      dockerfile: manager.Dockerfile
+    container_name: mirrors-qa-worker-manager
+    environment:
+      - BACKEND_ROOT_API=http://backend:8000
+
+volumes:
+  pg-data-mirrors-qa:
+
+networks:
+  mirrors-qa-network:
+    driver: bridge

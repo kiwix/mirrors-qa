@@ -1,5 +1,6 @@
 ARG PYTHON_VERSION=3.11
 
+
 FROM python:${PYTHON_VERSION}-slim
 LABEL org.opencontainers.image.source=https://github.com/kiwix/mirrors-qa
 # Copy code
@@ -13,7 +14,5 @@ RUN pip install --no-cache-dir /src \
 
 COPY docker-entrypoint.sh /bin/
 RUN chmod +x /bin/docker-entrypoint.sh
-
-EXPOSE 80
 
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
