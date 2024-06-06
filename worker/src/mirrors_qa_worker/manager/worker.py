@@ -1,14 +1,11 @@
-import os
 import time
 
 from mirrors_qa_worker import logger
+from mirrors_qa_worker.settings import Settings
 
 
 class WorkerManager:
     """Manager responsible for creating tasks"""
-
-    # number of seconds between each poll
-    sleep_interval = int(os.getenv("SLEEP_INTERVAL", 180))  # noqa
 
     def __init__(self, worker_id: str) -> None:
 
@@ -18,7 +15,7 @@ class WorkerManager:
         logger.debug("Fetching tasks from backend API")
 
     def sleep(self) -> None:
-        time.sleep(self.sleep_interval)
+        time.sleep(Settings.sleep_interval)
 
     def run(self) -> None:
         logger.info("Starting worker manager.")

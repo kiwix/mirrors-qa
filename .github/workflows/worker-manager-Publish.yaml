@@ -1,4 +1,4 @@
-name: Publish Docker image
+name: Publish worker-manager Docker image
 
 on:
   push:
@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     outputs:
-      backend: ${{ steps.filter.outputs.backend }}
       worker_manager: ${{ steps.filter.outputs.worker_manager }}
 
     steps:
@@ -21,39 +20,13 @@ jobs:
       id: filter
       with:
         filters: |
-          backend:
-            - 'backend/**'
           worker_manager:
             - 'worker/**'
 
-  backend:
-    name: Backend build
+  publish-worker-manager:
     runs-on: ubuntu-22.04
     needs: paths-filter
-    if: needs.paths-filter.outputs.backend == 'true'
-    steps:
-      - name: Retrieve source code
-        uses: actions/checkout@v4
-
-      - name: Build and publish Docker Image
-        uses: openzim/docker-publish-action@v10
-        with:
-          image-name: openzim/mirrors-qa-backend
-          tag-pattern: /^v([0-9.]+)$/
-          latest-on-tag: true
-          restrict-to: openzim/mirrors-qa
-          context: backend
-          registries: ghcr.io
-          credentials:
-            GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
-            GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
-          repo_description: auto
-          repo_overview: auto
-
-  worker-manager:
-    name: Worker manager build
-    runs-on: ubuntu-22.04
-    needs: paths-filter
+    # run only if 'worker' files were changed
     if: needs.paths-filter.outputs.worker_manager == 'true'
     steps:
       - name: Retrieve source code

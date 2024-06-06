@@ -1,6 +1,6 @@
 services:
   postgresdb:
-    image: postgres:16-bookworm
+    image: postgres:16.3-bookworm
     container_name: mirrors-qa-postgresdb
     volumes:
       - pg-data-mirrors-qa:/var/lib/postgresql/data
@@ -20,22 +20,20 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
-    build:
-      context: ../backend
+    image: openzim/mirrors-qa-backend
     container_name: mirrors-qa-backend
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
     networks:
       - mirrors-qa-network
     ports:
-      - 8000:8000
+      - 8000:80
   worker_manager:
-    build:
-      context: ../worker
-      dockerfile: manager.Dockerfile
+    image: openzim/mirrors-qa-worker-manager
     container_name: mirrors-qa-worker-manager
     environment:
-      - BACKEND_ROOT_API=http://backend:8000
+      - BACKEND_ROOT_API=http://backend
+      - SLEEP_INTERVAL=180
 
 volumes:
   pg-data-mirrors-qa:
