@@ -14,6 +14,6 @@ RUN pip install --no-cache-dir /src \
 COPY docker-entrypoint.sh /bin/
 RUN chmod +x /bin/docker-entrypoint.sh
 
-EXPOSE 80
+EXPOSE 8000
 
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
