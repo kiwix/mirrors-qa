@@ -12,7 +12,6 @@ jobs:
 
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
-      task_worker: ${{ steps.filter.outputs.task_worker }}
       worker_manager: ${{ steps.filter.outputs.worker_manager }}
 
     steps:
@@ -24,8 +23,6 @@ jobs:
         filters: |
           backend:
             - 'backend/**'
-          task_worker:
-            - 'worker/**'
           worker_manager:
             - 'worker/**'
 
@@ -71,31 +68,6 @@ jobs:
           restrict-to: openzim/mirrors-qa
           context: worker
           dockerfile: manager.Dockerfile
-          registries: ghcr.io
-          credentials:
-            GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
-            GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
-          repo_description: auto
-          repo_overview: auto
-
-  task-worker:
-    name: Task worker build
-    runs-on: ubuntu-22.04
-    needs: paths-filter
-    if: needs.paths-filter.outputs.task_worker == 'true'
-    steps:
-      - name: Retrieve source code
-        uses: actions/checkout@v4
-
-      - name: Build and publish Docker Image
-        uses: openzim/docker-publish-action@v10
-        with:
-          image-name: openzim/mirrors-qa-task-worker
-          latest-on-tag: true
-          tag-pattern: /^v([0-9.]+)$/
-          restrict-to: openzim/mirrors-qa
-          context: worker
-          dockerfile: task.Dockerfile
           registries: ghcr.io
           credentials:
             GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
