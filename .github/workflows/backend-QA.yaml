@@ -3,13 +3,15 @@ name: Backend QA
 on:
   pull_request:
   push:
+    paths:
+      - 'backend/**'
     branches:
       - main
 
 jobs:
+
   check-qa:
     runs-on: ubuntu-22.04
-
     steps:
       - uses: actions/checkout@v3
 

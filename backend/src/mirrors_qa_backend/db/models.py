@@ -15,7 +15,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.schema import MetaData
 
-from backend.enums import StatusEnum
+from mirrors_qa_backend.enums import StatusEnum
 
 
 class Base(MappedAsDataclass, DeclarativeBase):

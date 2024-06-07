@@ -1,0 +1,31 @@
+name: Publish backend Docker image
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+    branches:
+      - main
+
+jobs:
+
+  publish-backend:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Retrieve source code
+        uses: actions/checkout@v4
+
+      - name: Build and publish Docker Image
+        uses: openzim/docker-publish-action@v10
+        with:
+          image-name: openzim/mirrors-qa-backend
+          tag-pattern: /^v([0-9.]+)$/
+          latest-on-tag: true
+          restrict-to: openzim/mirrors-qa
+          context: backend
+          registries: ghcr.io
+          credentials:
+            GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
+            GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
+          repo_description: auto
+          repo_overview: auto

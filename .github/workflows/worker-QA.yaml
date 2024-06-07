@@ -3,13 +3,15 @@ name: Worker QA
 on:
   pull_request:
   push:
+    paths:
+      - 'worker/**'
     branches:
       - main
 
 jobs:
+
   check-qa:
     runs-on: ubuntu-22.04
-
     steps:
       - uses: actions/checkout@v3
 

@@ -9,6 +9,4 @@ COPY pyproject.toml README.md /src/
 RUN pip install --no-cache-dir /src \
  && rm -rf /src
 
-EXPOSE 80
-
-CMD ["uvicorn", "mirrors_qa_backend.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["mirrors-qa-worker"]

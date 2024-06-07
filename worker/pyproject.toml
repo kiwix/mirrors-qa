@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mirrors_qa_worker"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.11,<3.13"
 description = "mirrors-qa Worker"
 readme = "README.md"
 authors = [
@@ -17,7 +17,7 @@ dependencies = [
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
 ]
 
@@ -51,10 +51,10 @@ dev = [
 ]
 
 [project.scripts]
-mirrors-qa-worker = "worker:entrypoint"
+mirrors-qa-worker = "mirrors_qa_worker.entrypoint:main"
 
 [tool.hatch.version]
-path = "src/worker/__about__.py"
+path = "src/mirrors_qa_worker/__about__.py"
 
 [tool.hatch.build]
 exclude = [
@@ -62,7 +62,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/worker"]
+packages = ["src/mirrors_qa_worker"]
 
 [tool.hatch.envs.default]
 features = ["dev"]
@@ -185,7 +185,7 @@ unfixable = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["worker"]
+known-first-party = ["mirrors_qa_worker"]
 
 [tool.ruff.lint.flake8-bugbear]
 # add exceptions to B008 for fastapi.
@@ -204,15 +204,15 @@ testpaths = ["tests"]
 pythonpath = [".", "src"]
 
 [tool.coverage.paths]
-worker = ["src/worker"]
+mirrors_qa_worker = ["src/mirrors_qa_worker"]
 tests = ["tests"]
 
 [tool.coverage.run]
-source_pkgs = ["worker"]
+source_pkgs = ["mirrors_qa_worker"]
 branch = true
 parallel = true
 omit = [
-  "src/worker/__about__.py",
+  "src/mirrors_qa_worker/__about__.py",
 ]
 
 [tool.coverage.report]
@@ -226,6 +226,6 @@ exclude_lines = [
 include = ["src", "tests", "tasks.py"]
 exclude = [".env/**", ".venv/**"]
 extraPaths = ["src"]
-pythonVersion = "3.12"
+pythonVersion = "3.11"
 typeCheckingMode="strict"
 disableBytesTypePromotions = true
