@@ -3,30 +3,15 @@ name: Backend QA
 on:
   pull_request:
   push:
+    paths:
+      - 'backend/**'
     branches:
       - main
 
 jobs:
-  paths-filter:
-    runs-on: ubuntu-22.04
 
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: dorny/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          backend:
-            - 'backend/**'
   check-qa:
     runs-on: ubuntu-22.04
-    needs: paths-filter
-    # run only if 'backend' files were changed
-    if: needs.paths-filter.outputs.backend == 'true'
     steps:
       - uses: actions/checkout@v3
 

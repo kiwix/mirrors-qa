@@ -3,30 +3,15 @@ name: Worker QA
 on:
   pull_request:
   push:
+    paths:
+      - 'worker/**'
     branches:
       - main
 
 jobs:
-  paths-filter:
-    runs-on: ubuntu-22.04
 
-    outputs:
-      worker: ${{ steps.filter.outputs.worker }}
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: dorny/paths-filter@v3
-      id: filter
-      with:
-        filters: |
-          worker:
-            - 'worker/**'
   check-qa:
     runs-on: ubuntu-22.04
-    needs: paths-filter
-    # run only if 'worker' files were changed
-    if: needs.paths-filter.outputs.worker == 'true'
     steps:
       - uses: actions/checkout@v3
 
