@@ -18,10 +18,10 @@ jobs:
       - name: Build and publish Docker Image
         uses: openzim/docker-publish-action@v10
         with:
-          image-name: openzim/mirrors-qa-backend
+          image-name: kiwix/mirrors-qa-backend
           tag-pattern: /^v([0-9.]+)$/
           latest-on-tag: true
-          restrict-to: openzim/mirrors-qa
+          restrict-to: kiwix/mirrors-qa
           context: backend
           registries: ghcr.io
           credentials:
