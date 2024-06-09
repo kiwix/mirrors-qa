@@ -31,8 +31,16 @@ def upgrade() -> None:
         sa.Column("started_on", sa.DateTime(), nullable=True),
         sa.Column(
             "status",
-            sa.Enum(name="status", native_enum=False, create_constraint=True),
-            nullable=True,
+            sa.Enum(
+                "PENDING",
+                "MISSED",
+                "SUCCEEDED",
+                "ERRORED",
+                name="status",
+                native_enum=False,
+                create_constraint=True,
+            ),
+            nullable=False,
         ),
         sa.Column("error", sa.String(), nullable=True),
         sa.Column("isp", sa.String(), nullable=True),
