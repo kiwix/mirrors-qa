@@ -97,9 +97,9 @@ class Worker(Base):
     # RSA public key in PKCS8 format for generating access tokens required
     # to make requests to the web server
     pubkey_pkcs8: Mapped[str]
-    pubkey_fingerprint: Mapped[str | None] = mapped_column(default=None)
+    pubkey_fingerprint: Mapped[str]
 
-    last_seen_on: Mapped[datetime | None] = mapped_column(default=None)
+    last_seen_on: Mapped[datetime] = mapped_column(default_factory=datetime.now)
     countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
 
@@ -108,7 +108,7 @@ class Test(Base):
     id: Mapped[UUID] = mapped_column(
         init=False, primary_key=True, server_default=text("uuid_generate_v4()")
     )
-    requested_on: Mapped[datetime]
+    requested_on: Mapped[datetime] = mapped_column(default_factory=datetime.now)
     started_on: Mapped[datetime | None] = mapped_column(default=None)
     status: Mapped[StatusEnum] = mapped_column(
         Enum(

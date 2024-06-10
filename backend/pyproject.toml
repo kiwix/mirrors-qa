@@ -19,6 +19,7 @@ dependencies = [
     "psycopg[binary,pool] == 3.1.19",
     "beautifulsoup4 == 4.12.3",
     "requests == 2.32.3",
+    "pycountry == 24.6.1",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
@@ -33,7 +34,7 @@ dynamic = ["version"]
 Homepage = "https://github.com/kiwix/mirrors-qa"
 
 [project.scripts]
-mirrors-qa-backend = "mirrors_qa_backend.cli:main"
+mirrors-qa-backend = "mirrors_qa_backend.entrypoint:main"
 
 [project.optional-dependencies]
 scripts = [

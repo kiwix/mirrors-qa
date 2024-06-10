@@ -58,8 +58,8 @@ def upgrade() -> None:
         "worker",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("pubkey_pkcs8", sa.String(), nullable=False),
-        sa.Column("pubkey_fingerprint", sa.String(), nullable=True),
-        sa.Column("last_seen_on", sa.DateTime(), nullable=True),
+        sa.Column("pubkey_fingerprint", sa.String(), nullable=False),
+        sa.Column("last_seen_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_worker")),
     )
     op.create_table(
