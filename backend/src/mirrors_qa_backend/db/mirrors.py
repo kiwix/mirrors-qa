@@ -93,11 +93,12 @@ def update_mirrors(
     # Create any mirror that doesn't exist on the database
     for mirror_id, mirror in current_mirrors.items():
         if mirror_id not in db_mirrors:
-            # Create the mirror as it doesn't exists on the database.
+            # Create the mirror as it doesn't exist on the database.
             result.nb_mirrors_added += create_mirrors(session, [mirror])
 
     # Disable any mirror in the database that doesn't exist on the current
-    # list of mirrors
+    # list of mirrors. However, if a mirror is diabled in the database and
+    # exists in the list, re-enable it
     for db_mirror_id, db_mirror in db_mirrors.items():
         if db_mirror_id not in current_mirrors:
             logger.debug(
@@ -107,4 +108,12 @@ def update_mirrors(
             db_mirror.enabled = False
             session.add(db_mirror)
             result.nb_mirrors_disabled += 1
+        elif not db_mirror.enabled:  # re-enable mirror if it was disabled
+            logger.debug(
+                f"Re-enabling mirror: {db_mirror.id!r} for "
+                f"country: {db_mirror.country.name!r}"
+            )
+            db_mirror.enabled = True
+            session.add(db_mirror)
+            result.nb_mirrors_added += 1
     return result

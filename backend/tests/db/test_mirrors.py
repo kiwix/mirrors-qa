@@ -9,28 +9,6 @@ from mirrors_qa_backend.exceptions import EmptyMirrorsError
 
 
 @pytest.fixture(scope="session")
-def schema_mirror() -> schemas.Mirror:
-    return schemas.Mirror(
-        id="mirror-sites-in.mblibrary.info",
-        base_url="https://mirror-sites-in.mblibrary.info/mirror-sites/download.kiwix.org/",
-        enabled=True,
-        region=None,
-        asn=None,
-        score=None,
-        latitude=None,
-        longitude=None,
-        country_only=None,
-        region_only=None,
-        as_only=None,
-        other_countries=None,
-        country=schemas.Country(
-            code="in",
-            name="India",
-        ),
-    )
-
-
-@pytest.fixture
 def db_mirror() -> models.Mirror:
     mirror = models.Mirror(
         id="mirror-sites-in.mblibrary.info",
@@ -48,6 +26,11 @@ def db_mirror() -> models.Mirror:
     )
     mirror.country = models.Country(code="in", name="India")
     return mirror
+
+
+@pytest.fixture(scope="session")
+def schema_mirror(db_mirror: models.Mirror) -> schemas.Mirror:
+    return schemas.Mirror.model_validate(db_mirror)
 
 
 @pytest.fixture(scope="session")
@@ -124,3 +107,32 @@ def test_no_mirrors_added(
     dbsession.add(db_mirror)
     result = mirrors.update_mirrors(dbsession, [schema_mirror])
     assert result.nb_mirrors_added == 0
+
+
+def test_re_enable_existing_mirror(
+    dbsession: OrmSession,
+):
+    # Create a mirror in the database with enabled set to False
+    db_mirror = models.Mirror(
+        id="mirrors.dotsrc.org",
+        base_url="https://mirrors.dotsrc.org/kiwix/",
+        enabled=False,
+        region=None,
+        asn=None,
+        score=None,
+        latitude=None,
+        longitude=None,
+        country_only=None,
+        region_only=None,
+        as_only=None,
+        other_countries=None,
+    )
+    db_mirror.country = models.Country(code="dk", name="Denmark")
+    dbsession.add(db_mirror)
+
+    # Update the status of the mirror
+    schema_mirror = schemas.Mirror.model_validate(db_mirror)
+    schema_mirror.enabled = True
+
+    result = mirrors.update_mirrors(dbsession, [schema_mirror])
+    assert result.nb_mirrors_added == 1
