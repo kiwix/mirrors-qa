@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend import db, schemas
 from mirrors_qa_backend.db import mirrors, models
+from mirrors_qa_backend.exceptions import EmptyMirrorsError
 
 
 @pytest.fixture(scope="session")
@@ -81,6 +82,11 @@ def test_create_no_mirrors(dbsession: OrmSession):
 
 def test_create_mirrors(dbsession: OrmSession, schema_mirror: schemas.Mirror):
     assert mirrors.create_mirrors(dbsession, [schema_mirror]) == 1
+
+
+def test_raises_empty_mirrors_error(dbsession: OrmSession):
+    with pytest.raises(EmptyMirrorsError):
+        mirrors.update_mirrors(dbsession, [])
 
 
 def test_register_new_country_mirror(

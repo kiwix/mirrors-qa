@@ -7,10 +7,19 @@ from bs4 import BeautifulSoup, NavigableString
 from bs4.element import Tag
 
 from mirrors_qa_backend import logger, schemas
+from mirrors_qa_backend.exceptions import MirrorsExtractError
 from mirrors_qa_backend.settings import Settings
 
 
 def get_current_mirrors() -> list[schemas.Mirror]:
+    """
+    Returns list of current mirrors from the mrirors url.
+
+    Raises MirrorsExtractError if the parser is unable to extract the mirrors
+    from the page. This is most likely as a result of the page being updated
+    indicating that the parsing logic should be updated
+    """
+
     def find_country_rows(tag: Tag) -> bool:
         """
         Filters out table rows that do not contain mirror
@@ -25,7 +34,9 @@ def get_current_mirrors() -> list[schemas.Mirror]:
     body = soup.find("tbody")
 
     if body is None or isinstance(body, NavigableString | int):
-        raise ValueError
+        raise MirrorsExtractError(
+            f"unable to parse mirrors information from {Settings.mirrors_url!r}"
+        )
 
     mirrors: list[schemas.Mirror] = []
 

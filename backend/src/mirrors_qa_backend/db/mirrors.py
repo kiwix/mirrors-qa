@@ -19,8 +19,8 @@ class UpdateMirrorsResult:
 
 def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
     """
-    Given a list of schemas.Mirror, saves all the mirrors
-    to the database.
+    Saves all the mirrors to the database.
+
     Returns the total number of mirrors created.
 
     Assumes that each mirror does not exist on the database.
@@ -63,12 +63,12 @@ def update_mirrors(
     session: OrmSession, mirrors: list[schemas.Mirror]
 ) -> UpdateMirrorsResult:
     """
-    Given a list of current_mirrors, compares the list with the existing mirrors
-    in the database and disables mirrors in the database that are not in the list.
-    New mirrors from the list that are not in the database are created in the
-    database.
+    Disables mirrors in the database that are not in the provided list of mirrors.
+    New mirrors in the database are saved accordingly.
 
-    Returns UpdateMirrorsResult showing the total mirrors added and updated.
+    Raises an EmptyMirrorsError if the provided list of mirrors is empty.
+
+    Returns an UpdateMirrorsResult showing the number of mirrors added and updated.
     """
     result = UpdateMirrorsResult()
     # If there are no countries, disable all mirrors
