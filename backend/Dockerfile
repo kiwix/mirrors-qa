@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 LABEL org.opencontainers.image.source=https://github.com/kiwix/mirrors-qa
 # Copy code
 COPY src /src/src
