@@ -39,21 +39,21 @@ def count_from_stmt(session: OrmSession, stmt: SelectBase) -> int:
 
 def initialize_mirrors() -> None:
     with Session.begin() as session:
-        nb_mirrors = count_from_stmt(session, select(models.Mirror))
         current_mirrors = get_current_mirrors()
+        nb_mirrors = count_from_stmt(session, select(models.Mirror))
         if nb_mirrors == 0:
             logger.info("No mirrors exist in database.")
             if not current_mirrors:
                 logger.info(f"No mirrors were found on {Settings.mirrors_url!r}")
                 return
-            results = mirrors.update_mirrors(session, current_mirrors)
+            result = mirrors.create_or_update_status(session, current_mirrors)
             logger.info(
-                f"Registered {results.nb_mirrors_added} mirrors "
+                f"Registered {result.nb_mirrors_added} mirrors "
                 f"from {Settings.mirrors_url!r}"
             )
         else:
             logger.info(f"Found {nb_mirrors} mirrors in database.")
-            result = mirrors.update_mirrors(session, current_mirrors)
+            result = mirrors.create_or_update_status(session, current_mirrors)
             logger.info(
                 f"Added {result.nb_mirrors_added} mirrors. "
                 f"Disabled {result.nb_mirrors_disabled} mirrors."

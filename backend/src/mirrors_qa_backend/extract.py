@@ -7,28 +7,31 @@ from bs4 import BeautifulSoup, NavigableString
 from bs4.element import Tag
 
 from mirrors_qa_backend import logger, schemas
-from mirrors_qa_backend.exceptions import MirrorsExtractError
+from mirrors_qa_backend.exceptions import MirrorsExtractError, MirrorsRequestError
 from mirrors_qa_backend.settings import Settings
 
 
 def get_current_mirrors() -> list[schemas.Mirror]:
     """
-    Returns list of current mirrors from the mrirors url.
+    Current mirrors from the mirrors url.
 
-    Raises MirrorsExtractError if the parser is unable to extract the mirrors
-    from the page. This is most likely as a result of the page being updated
-    indicating that the parsing logic should be updated
+    Raises:
+        MirrorsExtractError: parser unable to extract the mirrors from the page.
+            Page DOM has been updated and parser needs an update as well.
+        MirrorsRequestError: a network error occured while fetching mirrors
     """
 
-    def find_country_rows(tag: Tag) -> bool:
+    def is_country_row(tag: Tag) -> bool:
         """
-        Filters out table rows that do not contain mirror
-        data from the table body.
+        Filters out table rows that do not contain mirror data.
         """
         return tag.name == "tr" and tag.findChild("td", class_="newregion") is None
 
-    resp = requests.get(Settings.mirrors_url, timeout=Settings.requests_timeout)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(Settings.mirrors_url, timeout=Settings.requests_timeout)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        raise MirrorsRequestError from exc
 
     soup = BeautifulSoup(resp.text, features="html.parser")
     body = soup.find("tbody")
@@ -40,7 +43,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
 
     mirrors: list[schemas.Mirror] = []
 
-    for row in body.find_all(find_country_rows):
+    for row in body.find_all(is_country_row):
         base_url = row.find("a", string="HTTP")["href"]
         hostname: Any = urlsplit(
             base_url
@@ -51,7 +54,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         try:
             country: Any = pycountry.countries.search_fuzzy(country_name)[0]
         except LookupError:
-            logger.warning(f"Could not get information for country: {country_name!r}")
+            logger.error(f"Could not get information for country: {country_name!r}")
             continue
         else:
             mirrors.append(

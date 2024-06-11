@@ -10,22 +10,19 @@ from mirrors_qa_backend.exceptions import EmptyMirrorsError
 
 
 @dataclass
-class UpdateMirrorsResult:
-    """Represents the results of an update to the list of mirrors in the database"""
+class MirrorsUpdateResult:
+    """Results of an update to the list of mirrors in the database"""
 
     nb_mirrors_added: int = 0
     nb_mirrors_disabled: int = 0
 
 
 def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
-    """
-    Saves all the mirrors to the database.
-
-    Returns the total number of mirrors created.
+    """Number of mirrors created in the database.
 
     Assumes that each mirror does not exist on the database.
     """
-    total = 0
+    nb_created = 0
     for mirror in mirrors:
         db_mirror = models.Mirror(
             id=mirror.id,
@@ -55,26 +52,23 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
         logger.debug(
             f"Registered new mirror: {db_mirror.id!r} for country: {country.name!r}"
         )
-        total += 1
-    return total
+        nb_created += 1
+    return nb_created
 
 
-def update_mirrors(
+def create_or_update_status(
     session: OrmSession, mirrors: list[schemas.Mirror]
-) -> UpdateMirrorsResult:
-    """
-    Disables mirrors in the database that are not in the provided list of mirrors.
-    New mirrors in the database are saved accordingly.
+) -> MirrorsUpdateResult:
+    """Updates the status of mirrors in the database and creates any new mirrors.
 
-    Raises an EmptyMirrorsError if the provided list of mirrors is empty.
+    Raises:
+        EmptyMirrorsError if the provided list of mirrors is empty.
 
-    Returns an UpdateMirrorsResult showing the number of mirrors added and updated.
     """
-    result = UpdateMirrorsResult()
-    # If there are no countries, disable all mirrors
     if not mirrors:
         raise EmptyMirrorsError("mirrors list must not be empty")
 
+    result = MirrorsUpdateResult()
     # Map the id (hostname) of each mirror from the mirrors list for comparison
     # against the id of mirrors from the database. To be used in determining
     # if this mirror is a new mirror, in which case it should be added
@@ -97,7 +91,7 @@ def update_mirrors(
             result.nb_mirrors_added += create_mirrors(session, [mirror])
 
     # Disable any mirror in the database that doesn't exist on the current
-    # list of mirrors. However, if a mirror is diabled in the database and
+    # list of mirrors. However, if a mirror is disabled in the database and
     # exists in the list, re-enable it
     for db_mirror_id, db_mirror in db_mirrors.items():
         if db_mirror_id not in current_mirrors:

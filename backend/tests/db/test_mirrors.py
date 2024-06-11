@@ -30,7 +30,23 @@ def db_mirror() -> models.Mirror:
 
 @pytest.fixture(scope="session")
 def schema_mirror(db_mirror: models.Mirror) -> schemas.Mirror:
-    return schemas.Mirror.model_validate(db_mirror)
+    return schemas.Mirror(
+        id=db_mirror.id,
+        base_url=db_mirror.base_url,
+        enabled=db_mirror.enabled,
+        region=db_mirror.region,
+        asn=db_mirror.asn,
+        score=db_mirror.score,
+        latitude=db_mirror.latitude,
+        longitude=db_mirror.longitude,
+        country_only=db_mirror.country_only,
+        region_only=db_mirror.region_only,
+        as_only=db_mirror.as_only,
+        other_countries=db_mirror.other_countries,
+        country=schemas.Country(
+            code=db_mirror.country.code, name=db_mirror.country.name
+        ),
+    )
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +85,7 @@ def test_create_mirrors(dbsession: OrmSession, schema_mirror: schemas.Mirror):
 
 def test_raises_empty_mirrors_error(dbsession: OrmSession):
     with pytest.raises(EmptyMirrorsError):
-        mirrors.update_mirrors(dbsession, [])
+        mirrors.create_or_update_status(dbsession, [])
 
 
 def test_register_new_country_mirror(
@@ -79,7 +95,9 @@ def test_register_new_country_mirror(
     new_schema_mirror: schemas.Mirror,
 ):
     dbsession.add(db_mirror)
-    result = mirrors.update_mirrors(dbsession, [schema_mirror, new_schema_mirror])
+    result = mirrors.create_or_update_status(
+        dbsession, [schema_mirror, new_schema_mirror]
+    )
     assert result.nb_mirrors_added == 1
 
 
@@ -89,7 +107,7 @@ def test_disable_old_mirror(
     new_schema_mirror: schemas.Mirror,
 ):
     dbsession.add(db_mirror)
-    result = mirrors.update_mirrors(dbsession, [new_schema_mirror])
+    result = mirrors.create_or_update_status(dbsession, [new_schema_mirror])
     assert result.nb_mirrors_disabled == 1
 
 
@@ -97,7 +115,7 @@ def test_no_mirrors_disabled(
     dbsession: OrmSession, db_mirror: models.Mirror, schema_mirror: schemas.Mirror
 ):
     dbsession.add(db_mirror)
-    result = mirrors.update_mirrors(dbsession, [schema_mirror])
+    result = mirrors.create_or_update_status(dbsession, [schema_mirror])
     assert result.nb_mirrors_disabled == 0
 
 
@@ -105,7 +123,7 @@ def test_no_mirrors_added(
     dbsession: OrmSession, db_mirror: models.Mirror, schema_mirror: schemas.Mirror
 ):
     dbsession.add(db_mirror)
-    result = mirrors.update_mirrors(dbsession, [schema_mirror])
+    result = mirrors.create_or_update_status(dbsession, [schema_mirror])
     assert result.nb_mirrors_added == 0
 
 
@@ -134,5 +152,5 @@ def test_re_enable_existing_mirror(
     schema_mirror = schemas.Mirror.model_validate(db_mirror)
     schema_mirror.enabled = True
 
-    result = mirrors.update_mirrors(dbsession, [schema_mirror])
+    result = mirrors.create_or_update_status(dbsession, [schema_mirror])
     assert result.nb_mirrors_added == 1

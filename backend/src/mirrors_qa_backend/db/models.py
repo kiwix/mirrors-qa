@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+import datetime
 from ipaddress import IPv4Address
 from uuid import UUID
 
@@ -27,7 +27,7 @@ class Base(MappedAsDataclass, DeclarativeBase):
         list[str]: ARRAY(
             item_type=String
         ),  # transform Python list[str] into PostgreSQL Array of strings
-        datetime: DateTime(
+        datetime.datetime: DateTime(
             timezone=False
         ),  # transform Python datetime into PostgreSQL Datetime without timezone
         IPv4Address: INET,  # transform Python IPV4Address into PostgreSQL INET
@@ -99,7 +99,9 @@ class Worker(Base):
     pubkey_pkcs8: Mapped[str]
     pubkey_fingerprint: Mapped[str]
 
-    last_seen_on: Mapped[datetime] = mapped_column(default_factory=datetime.now)
+    last_seen_on: Mapped[datetime.datetime] = mapped_column(
+        default_factory=datetime.datetime.now
+    )
     countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
 
@@ -108,8 +110,10 @@ class Test(Base):
     id: Mapped[UUID] = mapped_column(
         init=False, primary_key=True, server_default=text("uuid_generate_v4()")
     )
-    requested_on: Mapped[datetime] = mapped_column(default_factory=datetime.now)
-    started_on: Mapped[datetime | None] = mapped_column(default=None)
+    requested_on: Mapped[datetime.datetime] = mapped_column(
+        default_factory=datetime.datetime.now
+    )
+    started_on: Mapped[datetime.datetime | None] = mapped_column(default=None)
     status: Mapped[StatusEnum] = mapped_column(
         Enum(
             StatusEnum,
