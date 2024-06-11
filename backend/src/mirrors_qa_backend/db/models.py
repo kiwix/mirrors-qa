@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+import datetime
 from ipaddress import IPv4Address
 from uuid import UUID
 
@@ -27,7 +27,7 @@ class Base(MappedAsDataclass, DeclarativeBase):
         list[str]: ARRAY(
             item_type=String
         ),  # transform Python list[str] into PostgreSQL Array of strings
-        datetime: DateTime(
+        datetime.datetime: DateTime(
             timezone=False
         ),  # transform Python datetime into PostgreSQL Datetime without timezone
         IPv4Address: INET,  # transform Python IPV4Address into PostgreSQL INET
@@ -74,15 +74,15 @@ class Mirror(Base):
     base_url: Mapped[str]
     enabled: Mapped[bool]
     # metadata of a mirror from MirroBrain (https://mirrorbrain-docs.readthedocs.io/en/latest/mirrors.html#displaying-details-about-a-mirror)
-    region: Mapped[str | None]
-    asn: Mapped[str | None]
-    score: Mapped[int | None]
-    latitude: Mapped[float | None]
-    longitude: Mapped[float | None]
-    country_only: Mapped[bool | None]
-    region_only: Mapped[bool | None]
-    as_only: Mapped[bool | None]
-    other_countries: Mapped[list[str] | None]
+    region: Mapped[str | None] = mapped_column(default=None)
+    asn: Mapped[str | None] = mapped_column(default=None)
+    score: Mapped[int | None] = mapped_column(default=None)
+    latitude: Mapped[float | None] = mapped_column(default=None)
+    longitude: Mapped[float | None] = mapped_column(default=None)
+    country_only: Mapped[bool | None] = mapped_column(default=None)
+    region_only: Mapped[bool | None] = mapped_column(default=None)
+    as_only: Mapped[bool | None] = mapped_column(default=None)
+    other_countries: Mapped[list[str] | None] = mapped_column(default=None)
 
     country_code: Mapped[str] = mapped_column(
         ForeignKey("country.code"),
@@ -97,9 +97,11 @@ class Worker(Base):
     # RSA public key in PKCS8 format for generating access tokens required
     # to make requests to the web server
     pubkey_pkcs8: Mapped[str]
-    pubkey_fingerprint: Mapped[str | None]
+    pubkey_fingerprint: Mapped[str]
 
-    last_seen_on: Mapped[datetime | None]
+    last_seen_on: Mapped[datetime.datetime] = mapped_column(
+        default_factory=datetime.datetime.now
+    )
     countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
 
@@ -108,23 +110,28 @@ class Test(Base):
     id: Mapped[UUID] = mapped_column(
         init=False, primary_key=True, server_default=text("uuid_generate_v4()")
     )
-    requested_on: Mapped[datetime]
-    started_on: Mapped[datetime | None]
-    status: Mapped[StatusEnum | None] = mapped_column(
+    requested_on: Mapped[datetime.datetime] = mapped_column(
+        default_factory=datetime.datetime.now
+    )
+    started_on: Mapped[datetime.datetime | None] = mapped_column(default=None)
+    status: Mapped[StatusEnum] = mapped_column(
         Enum(
+            StatusEnum,
             native_enum=False,
             validate_strings=True,
             create_constraint=True,
             name="status",
-        )
+        ),
+        default=StatusEnum.PENDING,
     )
-    error: Mapped[str | None]
-    isp: Mapped[str | None]
-    ip_address: Mapped[IPv4Address | None]
-    asn: Mapped[str | None]  # autonomous system based on IP
-    country: Mapped[str | None]  # country based on IP
-    location: Mapped[str | None]  # city based on IP
-    latency: Mapped[int | None]  # milliseconds
-    download_size: Mapped[int | None]  # bytes
-    duration: Mapped[int | None]  # seconds
-    speed: Mapped[float | None]  # bytes per second
+    error: Mapped[str | None] = mapped_column(default=None)
+    isp: Mapped[str | None] = mapped_column(default=None)
+    ip_address: Mapped[IPv4Address | None] = mapped_column(default=None)
+    # autonomous system based on IP
+    asn: Mapped[str | None] = mapped_column(default=None)
+    country: Mapped[str | None] = mapped_column(default=None)  # country based on IP
+    location: Mapped[str | None] = mapped_column(default=None)  # city based on IP
+    latency: Mapped[int | None] = mapped_column(default=None)  # milliseconds
+    download_size: Mapped[int | None] = mapped_column(default=None)  # bytes
+    duration: Mapped[int | None] = mapped_column(default=None)  # seconds
+    speed: Mapped[float | None] = mapped_column(default=None)  # bytes per second

@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session as OrmSession
 from sqlalchemy.orm import sessionmaker
 
 from mirrors_qa_backend import logger
-from mirrors_qa_backend.db.models import Mirror
+from mirrors_qa_backend.db import mirrors, models
+from mirrors_qa_backend.extract import get_current_mirrors
 from mirrors_qa_backend.settings import Settings
 
 Session = sessionmaker(
@@ -38,9 +39,22 @@ def count_from_stmt(session: OrmSession, stmt: SelectBase) -> int:
 
 def initialize_mirrors() -> None:
     with Session.begin() as session:
-        count = count_from_stmt(session, select(Mirror))
-        if count == 0:
+        current_mirrors = get_current_mirrors()
+        nb_mirrors = count_from_stmt(session, select(models.Mirror))
+        if nb_mirrors == 0:
             logger.info("No mirrors exist in database.")
-            # TODO: update mirrors from https://download.kiwix.org/mirrors.html
+            if not current_mirrors:
+                logger.info(f"No mirrors were found on {Settings.mirrors_url!r}")
+                return
+            result = mirrors.create_or_update_status(session, current_mirrors)
+            logger.info(
+                f"Registered {result.nb_mirrors_added} mirrors "
+                f"from {Settings.mirrors_url!r}"
+            )
         else:
-            logger.info(f"Found {count} mirrors in database.")
+            logger.info(f"Found {nb_mirrors} mirrors in database.")
+            result = mirrors.create_or_update_status(session, current_mirrors)
+            logger.info(
+                f"Added {result.nb_mirrors_added} mirrors. "
+                f"Disabled {result.nb_mirrors_disabled} mirrors."
+            )

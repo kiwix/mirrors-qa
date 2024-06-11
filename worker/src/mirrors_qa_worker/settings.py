@@ -16,3 +16,4 @@ class Settings:
 
     # number of seconds between each poll
     sleep_interval = int(getenv("SLEEP_INTERVAL", default=180))
+    debug = bool(getenv("DEBUG", default=False))

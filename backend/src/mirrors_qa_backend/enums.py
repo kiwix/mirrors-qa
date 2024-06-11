@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class StatusEnum(Enum):
-    MISSED = 0
-    SUCCEEDED = 1
-    ERRORED = 2
+    PENDING = 0
+    MISSED = 1
+    SUCCEEDED = 2
+    ERRORED = 3

@@ -31,8 +31,16 @@ def upgrade() -> None:
         sa.Column("started_on", sa.DateTime(), nullable=True),
         sa.Column(
             "status",
-            sa.Enum(name="status", native_enum=False, create_constraint=True),
-            nullable=True,
+            sa.Enum(
+                "PENDING",
+                "MISSED",
+                "SUCCEEDED",
+                "ERRORED",
+                name="status",
+                native_enum=False,
+                create_constraint=True,
+            ),
+            nullable=False,
         ),
         sa.Column("error", sa.String(), nullable=True),
         sa.Column("isp", sa.String(), nullable=True),
@@ -50,8 +58,8 @@ def upgrade() -> None:
         "worker",
         sa.Column("id", sa.String(), nullable=False),
         sa.Column("pubkey_pkcs8", sa.String(), nullable=False),
-        sa.Column("pubkey_fingerprint", sa.String(), nullable=True),
-        sa.Column("last_seen_on", sa.DateTime(), nullable=True),
+        sa.Column("pubkey_fingerprint", sa.String(), nullable=False),
+        sa.Column("last_seen_on", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_worker")),
     )
     op.create_table(

@@ -17,6 +17,9 @@ dependencies = [
     "pydantic == 2.7.2",
     "SQLAlchemy == 2.0.30",
     "psycopg[binary,pool] == 3.1.19",
+    "beautifulsoup4 == 4.12.3",
+    "requests == 2.32.3",
+    "pycountry == 24.6.1",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
@@ -29,6 +32,9 @@ dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/kiwix/mirrors-qa"
+
+[project.scripts]
+update-mirrors = "mirrors_qa_backend.entrypoint:main"
 
 [project.optional-dependencies]
 scripts = [
@@ -92,7 +98,7 @@ fix-ruff = "inv fix-ruff --args '{args}'"
 fixall = "inv fixall --args '{args}'"
 
 [tool.hatch.envs.check]
-features = ["scripts", "check"]
+features = ["scripts", "test", "check"]
 
 [tool.hatch.envs.check.scripts]
 pyright = "inv check-pyright --args '{args}'"
