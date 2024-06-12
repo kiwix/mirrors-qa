@@ -20,7 +20,8 @@ services:
     depends_on:
       postgresdb:
         condition: service_healthy
-    image: kiwix/mirrors-qa-backend
+    build:
+      context: ../backend
     container_name: mirrors-qa-backend
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
@@ -29,7 +30,9 @@ services:
     ports:
       - 8000:80
   worker_manager:
-    image: kiwix/mirrors-qa-worker-manager
+    build:
+      context: ../worker
+      dockerfile: manager.Dockerfile
     container_name: mirrors-qa-worker-manager
     environment:
       - BACKEND_ROOT_API=http://backend
