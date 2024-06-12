@@ -32,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: backend/pyproject.toml
+          python-version-file: backend/pyproject.toml
           architecture: x64
 
       - name: Install dependencies (and project)
