@@ -1,0 +1,60 @@
+name: Backend Tests
+
+on:
+  pull_request:
+  push:
+    paths:
+      - 'backend/**'
+    branches:
+      - main
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-22.04
+
+    services:
+      postgresdb:
+        image: postgres:16.3-bookworm
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version-file: backend/pyproject.toml
+          architecture: x64
+
+      - name: Install dependencies (and project)
+        working-directory: backend
+        run: |
+          pip install -U pip
+          pip install -e .[test,scripts]
+
+      - name: Create extensions on the PostgreSQL database
+        run: >-
+          psql -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
+          "host=localhost port=5432 dbname=postgres user=postgres password=postgres"
+
+      - name: Run the tests
+        working-directory: backend
+        env:
+          POSTGRES_URI: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+        run: inv coverage --args "-vvv"
+
+      - name: Upload coverage report to codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: backend
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
