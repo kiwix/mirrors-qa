@@ -16,14 +16,12 @@ jobs:
       postgresdb:
         image: postgres:16.3-bookworm
         env:
-          POSTGRES_DB: mirrors_qa
-          POSTGRES_PASSWORD: mirrors_qa
-          POSTGRES_USER: mirrors_qa
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         # Set health checks to wait until postgres has started
         options: >-
-          --health-cmd "pg_isready -q -d dbname=mirrors_qa user=mirrors_qa"
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -46,12 +44,12 @@ jobs:
       - name: Create extensions on the PostgreSQL database
         run: >-
           psql -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'
-          "host=localhost port=5432 dbname=mirrors_qa user=mirrors_qa password=mirrors_qa"
+          "host=localhost port=5432 dbname=postgres user=postgres password=postgres"
 
       - name: Run the tests
         working-directory: backend
         env:
-          POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@localhost:5432/mirrors_qa
+          POSTGRES_URI: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
         run: inv coverage --args "-vvv"
 
       - name: Upload coverage report to codecov
