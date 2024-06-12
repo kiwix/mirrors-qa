@@ -50,12 +50,11 @@ jobs:
         working-directory: backend
         env:
           POSTGRES_URI: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
-        run: pytest --cov=./ --cov-report=xml
+        run: inv coverage --args "-vvv"
 
       - name: Upload coverage report to codecov
         uses: codecov/codecov-action@v3
         with:
-          directory: backend
-          files: ./coverage.xml
+          working-directory: backend
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
