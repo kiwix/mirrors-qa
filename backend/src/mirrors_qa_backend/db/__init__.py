@@ -7,12 +7,17 @@ from sqlalchemy.orm import Session as OrmSession
 from sqlalchemy.orm import sessionmaker
 
 from mirrors_qa_backend import logger
-from mirrors_qa_backend.db import mirrors, models
+from mirrors_qa_backend.db import (
+    mirrors,
+    models,
+    tests,
+    worker,
+)
 from mirrors_qa_backend.extract import get_current_mirrors
 from mirrors_qa_backend.settings import Settings
 
 Session = sessionmaker(
-    bind=create_engine(url=Settings.database_url, echo=False),
+    bind=create_engine(url=Settings.DATABASE_URL, echo=False),
     expire_on_commit=False,
 )
 
@@ -44,12 +49,12 @@ def initialize_mirrors() -> None:
         if nb_mirrors == 0:
             logger.info("No mirrors exist in database.")
             if not current_mirrors:
-                logger.info(f"No mirrors were found on {Settings.mirrors_url!r}")
+                logger.info(f"No mirrors were found on {Settings.MIRRORS_URL!r}")
                 return
             result = mirrors.create_or_update_status(session, current_mirrors)
             logger.info(
                 f"Registered {result.nb_mirrors_added} mirrors "
-                f"from {Settings.mirrors_url!r}"
+                f"from {Settings.MIRRORS_URL!r}"
             )
         else:
             logger.info(f"Found {nb_mirrors} mirrors in database.")
@@ -58,3 +63,10 @@ def initialize_mirrors() -> None:
                 f"Added {result.nb_mirrors_added} mirrors. "
                 f"Disabled {result.nb_mirrors_disabled} mirrors."
             )
+
+
+__all__ = [
+    "tests",
+    "worker",
+    "mirrors",
+]

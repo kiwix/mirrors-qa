@@ -2,7 +2,27 @@ from enum import Enum
 
 
 class StatusEnum(Enum):
-    PENDING = 0
-    MISSED = 1
-    SUCCEEDED = 2
-    ERRORED = 3
+    """Status of a test in the database."""
+
+    PENDING = "PENDING"
+    MISSED = "MISSED"
+    SUCCEEDED = "SUCCEEDED"
+    ERRORED = "ERRORED"
+
+
+class TestSortColumnEnum(Enum):
+    """Fields for sorting tests from a database"""
+
+    requested_on = "requested_on"
+    started_on = "started_on"
+    status = "status"
+    worker_id = "worker_id"
+    country = "country"
+    city = "city"
+
+
+class SortDirectionEnum(Enum):
+    """Direction to sort list of results from a database"""
+
+    asc = "asc"
+    desc = "desc"

@@ -104,6 +104,8 @@ class Worker(Base):
     )
     countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
 
+    tests: Mapped[list[Test]] = relationship(back_populates="worker", init=False)
+
 
 class Test(Base):
     __tablename__ = "test"
@@ -135,3 +137,8 @@ class Test(Base):
     download_size: Mapped[int | None] = mapped_column(default=None)  # bytes
     duration: Mapped[int | None] = mapped_column(default=None)  # seconds
     speed: Mapped[float | None] = mapped_column(default=None)  # bytes per second
+    worker_id: Mapped[str | None] = mapped_column(
+        ForeignKey("worker.id"), init=False, default=None
+    )
+
+    worker: Mapped[Worker | None] = relationship(back_populates="tests", init=False)

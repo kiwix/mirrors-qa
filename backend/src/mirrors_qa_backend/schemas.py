@@ -1,5 +1,11 @@
+import datetime
+import math
+from ipaddress import IPv4Address
+
 import pydantic
-from pydantic import ConfigDict
+from pydantic import UUID4, ConfigDict
+
+from mirrors_qa_backend.enums import StatusEnum
 
 
 class BaseModel(pydantic.BaseModel):
@@ -25,3 +31,63 @@ class Mirror(BaseModel):
     as_only: bool | None = None
     other_countries: list[str] | None = None
     country: Country
+
+
+class UpdateTestModel(BaseModel):
+    started_on: datetime.datetime | None = None
+    error: str | None = None
+    isp: str | None = None
+    ip_address: IPv4Address | None = None
+    asn: str | None = None
+    country: str | None = None
+    location: str | None = None
+    latency: int | None = None
+    download_size: int | None = None
+    duration: int | None = None
+    speed: float | None = None
+    status: StatusEnum = StatusEnum.PENDING
+
+
+class Test(UpdateTestModel):
+    id: UUID4
+    requested_on: datetime.datetime
+
+
+class Paginator(BaseModel):
+    total_records: int
+    page_size: int
+    current_page: int | None = None
+    first_page: int | None = None
+    last_page: int | None = None
+
+
+class TestsList(BaseModel):
+    tests: list[Test]
+    metadata: Paginator
+
+
+def calculate_pagination_metadata(
+    total_records: int, page_size: int, current_page: int
+) -> Paginator:
+    if total_records == 0:
+        return Paginator(total_records=0, page_size=0)
+    return Paginator(
+        total_records=total_records,
+        first_page=1,
+        page_size=page_size,
+        current_page=current_page,
+        last_page=math.ceil(total_records / page_size),
+    )
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: float
+
+
+class JWTClaims(BaseModel):
+    iss: str
+    exp: datetime.datetime
+    iat: datetime.datetime
+    subject: str
