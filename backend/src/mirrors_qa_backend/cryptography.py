@@ -51,7 +51,6 @@ def generate_access_token(worker_id: str) -> str:
         "iss": "mirrors-qa-backend",  # issuer
         "exp": expire_time.timestamp(),  # expiration time
         "iat": issue_time.timestamp(),  # issued at
-        # "jti": uuid.uuid4(),  # JWT ID
-        "subject": worker_id,  # user payload (username, scope)
+        "subject": worker_id,
     }
     return jwt.encode(payload, key=Settings.JWT_SECRET, algorithm="HS256")
