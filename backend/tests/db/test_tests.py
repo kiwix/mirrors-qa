@@ -29,11 +29,12 @@ def test_get_test(dbsession: OrmSession, tests: list[models.Test]):
     ],
 )
 def test_basic_filter(
+    *,
     dbsession: OrmSession,
     worker_id: str | None,
     country: str | None,
     statuses: list[StatusEnum] | None,
-    expected: bool,  # noqa: FBT001
+    expected: bool,
 ):
     test = db_tests.create_or_update_test(dbsession, status=StatusEnum.PENDING)
     assert (

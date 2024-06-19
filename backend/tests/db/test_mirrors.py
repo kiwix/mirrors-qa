@@ -1,4 +1,3 @@
-# ruff: noqa: E712
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession

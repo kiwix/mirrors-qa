@@ -1,7 +1,8 @@
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, Header, Path
+from fastapi import Depends, Path
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import exceptions as jwt_exceptions
 from pydantic import UUID4
 from pydantic import ValidationError as PydanticValidationError
@@ -14,16 +15,15 @@ from mirrors_qa_backend.settings import Settings
 
 DbSession = Annotated[Session, Depends(gen_dbsession)]
 
+security = HTTPBearer(description="Access Token")
+AuthorizationCredentials = Annotated[HTTPAuthorizationCredentials, Depends(security)]
+
 
 def get_current_worker(
     session: DbSession,
-    authorization: Annotated[str, Header()] = "",
+    authorization: AuthorizationCredentials,
 ) -> models.Worker:
-    header_parts = authorization.split(" ")
-    if len(header_parts) != 2 or header_parts[0] != "Bearer":  # noqa: PLR2004
-        raise http_errors.UnauthorizedError()
-
-    token = header_parts[1]
+    token = authorization.credentials
     try:
         jwt_claims = jwt.decode(token, Settings.JWT_SECRET, algorithms=["HS256"])
     except jwt_exceptions.ExpiredSignatureError as exc:
@@ -55,9 +55,9 @@ def get_test(session: DbSession, test_id: Annotated[UUID4, Path()]) -> models.Te
     return test
 
 
-GetTest = Annotated[models.Test, Depends(get_test)]
+RetrievedTest = Annotated[models.Test, Depends(get_test)]
 
 
-def verify_worker_owns_test(worker: CurrentWorker, test: GetTest):
+def verify_worker_owns_test(worker: CurrentWorker, test: RetrievedTest):
     if test.worker_id != worker.id:
         raise http_errors.UnauthorizedError("Insufficient privileges to update test.")

@@ -9,7 +9,7 @@ from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColu
 from mirrors_qa_backend.routes.dependencies import (
     CurrentWorker,
     DbSession,
-    GetTest,
+    RetrievedTest,
     verify_worker_owns_test,
 )
 from mirrors_qa_backend.settings import Settings
@@ -64,7 +64,7 @@ def list_tests(
         },
     },
 )
-def get_test(test: GetTest) -> schemas.Test:
+def get_test(test: RetrievedTest) -> schemas.Test:
     return serializer.serialize_test(test)
 
 
@@ -79,7 +79,7 @@ def get_test(test: GetTest) -> schemas.Test:
 def update_test(
     session: DbSession,
     worker: CurrentWorker,
-    test: GetTest,
+    test: RetrievedTest,
     update: schemas.UpdateTestModel,
 ) -> schemas.Test:
     data = update.model_dump(exclude_unset=True)

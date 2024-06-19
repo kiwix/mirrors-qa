@@ -41,14 +41,15 @@ def test_tests_list(client: TestClient, tests: list[models.Test]):
     ["with_auth", "expected_status"],
     [
         (True, status.HTTP_200_OK),
-        (False, status.HTTP_401_UNAUTHORIZED),
+        (False, status.HTTP_403_FORBIDDEN),
     ],
 )
 def test_test_patch(
+    *,
     tests: list[models.Test],
     client: TestClient,
     access_token: str,
-    with_auth: bool,  # noqa: FBT001
+    with_auth: bool,
     expected_status: int,
 ):
     test = tests[0]
