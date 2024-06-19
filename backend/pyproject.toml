@@ -12,14 +12,16 @@ authors = [
 ]
 keywords = ["mirrors"]
 dependencies = [
-    "alembic == 1.13.1",
-    "fastapi[all] == 0.111.0",
-    "pydantic == 2.7.2",
-    "SQLAlchemy == 2.0.30",
-    "psycopg[binary,pool] == 3.1.19",
-    "beautifulsoup4 == 4.12.3",
-    "requests == 2.32.3",
-    "pycountry == 24.6.1",
+    "alembic==1.13.1",
+    "fastapi[all]==0.111.0",
+    "pydantic==2.7.2",
+    "SQLAlchemy==2.0.30",
+    "psycopg[binary,pool]==3.1.19",
+    "beautifulsoup4==4.12.3",
+    "requests==2.32.3",
+    "pycountry==24.6.1",
+    "cryptography==42.0.8",
+    "PyJWT==2.8.0",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
@@ -50,6 +52,9 @@ check = [
 test = [
   "pytest==8.0.0",
   "coverage==7.4.1",
+  "Faker==25.8.0",
+  "paramiko==3.4.0",
+  "httpx==0.27.0",
 ]
 dev = [
   "pre-commit==3.6.0",
@@ -208,6 +213,10 @@ ban-relative-imports = "all"
 minversion = "7.3"
 testpaths = ["tests"]
 pythonpath = [".", "src"]
+addopts = "--strict-markers"
+markers = [
+    "num_tests: number of tests to create in the database (default: 10)",
+]
 
 [tool.coverage.paths]
 mirrors_qa_backend = ["src/mirrors_qa_backend"]

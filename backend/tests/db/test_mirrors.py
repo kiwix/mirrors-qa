@@ -1,11 +1,10 @@
-# ruff: noqa: E712
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
-from mirrors_qa_backend import db, schemas
+from mirrors_qa_backend import db, schemas, serializer
 from mirrors_qa_backend.db import mirrors, models
-from mirrors_qa_backend.exceptions import EmptyMirrorsError
+from mirrors_qa_backend.db.exceptions import EmptyMirrorsError
 
 
 @pytest.fixture(scope="session")
@@ -30,23 +29,7 @@ def db_mirror() -> models.Mirror:
 
 @pytest.fixture(scope="session")
 def schema_mirror(db_mirror: models.Mirror) -> schemas.Mirror:
-    return schemas.Mirror(
-        id=db_mirror.id,
-        base_url=db_mirror.base_url,
-        enabled=db_mirror.enabled,
-        region=db_mirror.region,
-        asn=db_mirror.asn,
-        score=db_mirror.score,
-        latitude=db_mirror.latitude,
-        longitude=db_mirror.longitude,
-        country_only=db_mirror.country_only,
-        region_only=db_mirror.region_only,
-        as_only=db_mirror.as_only,
-        other_countries=db_mirror.other_countries,
-        country=schemas.Country(
-            code=db_mirror.country.code, name=db_mirror.country.name
-        ),
-    )
+    return serializer.serialize_mirror(db_mirror)
 
 
 @pytest.fixture(scope="session")
@@ -88,7 +71,7 @@ def test_raises_empty_mirrors_error(dbsession: OrmSession):
         mirrors.create_or_update_status(dbsession, [])
 
 
-def test_register_new_country_mirror(
+def test_register_new_mirror(
     dbsession: OrmSession,
     schema_mirror: schemas.Mirror,
     db_mirror: models.Mirror,
@@ -149,7 +132,7 @@ def test_re_enable_existing_mirror(
     dbsession.add(db_mirror)
 
     # Update the status of the mirror
-    schema_mirror = schemas.Mirror.model_validate(db_mirror)
+    schema_mirror = serializer.serialize_mirror(db_mirror)
     schema_mirror.enabled = True
 
     result = mirrors.create_or_update_status(dbsession, [schema_mirror])

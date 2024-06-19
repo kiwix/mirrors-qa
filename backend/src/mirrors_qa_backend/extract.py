@@ -28,7 +28,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         return tag.name == "tr" and tag.findChild("td", class_="newregion") is None
 
     try:
-        resp = requests.get(Settings.mirrors_url, timeout=Settings.requests_timeout)
+        resp = requests.get(Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT)
         resp.raise_for_status()
     except requests.RequestException as exc:
         raise MirrorsRequestError from exc
@@ -38,7 +38,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
 
     if body is None or isinstance(body, NavigableString | int):
         raise MirrorsExtractError(
-            f"unable to parse mirrors information from {Settings.mirrors_url!r}"
+            f"unable to parse mirrors information from {Settings.MIRRORS_URL!r}"
         )
 
     mirrors: list[schemas.Mirror] = []
@@ -48,7 +48,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         hostname: Any = urlsplit(
             base_url
         ).netloc  # pyright: ignore [reportUnknownMemberType]
-        if hostname in Settings.mirrors_exclusion_list:
+        if hostname in Settings.MIRRORS_EXCLUSION_LIST:
             continue
         country_name = row.find("img").next_sibling.text.strip()
         try:

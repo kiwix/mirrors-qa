@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from mirrors_qa_backend import logger, schemas
 from mirrors_qa_backend.db import models
-from mirrors_qa_backend.exceptions import EmptyMirrorsError
+from mirrors_qa_backend.db.exceptions import EmptyMirrorsError
 
 
 @dataclass

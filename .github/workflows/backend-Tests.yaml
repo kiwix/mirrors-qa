@@ -50,6 +50,7 @@ jobs:
         working-directory: backend
         env:
           POSTGRES_URI: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+          JWT_SECRET: DH8kSxcflUVfNRdkEiJJCn2dOOKI3qfw
         run: inv coverage --args "-vvv"
 
       - name: Upload coverage report to codecov

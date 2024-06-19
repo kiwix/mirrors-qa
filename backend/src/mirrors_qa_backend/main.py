@@ -15,8 +15,10 @@ async def lifespan(_: FastAPI):
 
 def create_app(*, debug: bool = True):
     app = FastAPI(debug=debug, docs_url="/", lifespan=lifespan)
+
     app.include_router(router=tests.router)
     app.include_router(router=auth.router)
+
     return app
 
 
