@@ -21,6 +21,17 @@ class UnauthorizedError(HTTPException):
         )
 
 
+class ForbiddenError(HTTPException):
+    def __init__(self, message: Any = None) -> None:
+        if message is None:
+            message = "Identity unknown to server."
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=message,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 class NotFoundError(HTTPException):
     def __init__(self, message: Any) -> None:
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=message)

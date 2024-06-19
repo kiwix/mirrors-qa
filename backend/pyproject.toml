@@ -20,7 +20,6 @@ dependencies = [
     "beautifulsoup4==4.12.3",
     "requests==2.32.3",
     "pycountry==24.6.1",
-    "httpx==0.27.0",
     "cryptography==42.0.8",
     "PyJWT==2.8.0",
 ]
@@ -55,6 +54,7 @@ test = [
   "coverage==7.4.1",
   "Faker==25.8.0",
   "paramiko==3.4.0",
+  "httpx==0.27.0",
 ]
 dev = [
   "pre-commit==3.6.0",

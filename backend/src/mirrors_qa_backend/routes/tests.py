@@ -1,12 +1,17 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi import status as status_codes
-from pydantic import UUID4
 
-from mirrors_qa_backend import db, schemas, serializer
+from mirrors_qa_backend import schemas, serializer
+from mirrors_qa_backend.db import tests
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
-from mirrors_qa_backend.routes import CurrentWorker, DbSession, http_errors
+from mirrors_qa_backend.routes.dependencies import (
+    CurrentWorker,
+    DbSession,
+    GetTest,
+    verify_worker_owns_test,
+)
 from mirrors_qa_backend.settings import Settings
 
 router = APIRouter(prefix="/tests", tags=["tests"])
@@ -31,11 +36,11 @@ def list_tests(
     sort_by: Annotated[TestSortColumnEnum, Query()] = TestSortColumnEnum.requested_on,
     order: Annotated[SortDirectionEnum, Query()] = SortDirectionEnum.asc,
 ) -> schemas.TestsList:
-    result = db.tests.list_tests(
+    result = tests.list_tests(
         session,
         worker_id=worker_id,
         country=country,
-        status=status,
+        statuses=status,
         page_size=page_size,
         page_num=page_num,
         sort_column=sort_by,
@@ -59,10 +64,7 @@ def list_tests(
         },
     },
 )
-def get_test(test_id: UUID4, session: DbSession) -> schemas.Test:
-    test = db.tests.get_test(session, test_id)
-    if test is None:
-        raise http_errors.NotFoundError(f"Test with id '{test_id}' does not exist.")
+def get_test(test: GetTest) -> schemas.Test:
     return serializer.serialize_test(test)
 
 
@@ -72,26 +74,19 @@ def get_test(test_id: UUID4, session: DbSession) -> schemas.Test:
     responses={
         status_codes.HTTP_200_OK: {"description": "Update the details of a test."},
     },
+    dependencies=[Depends(verify_worker_owns_test)],
 )
 def update_test(
     session: DbSession,
     worker: CurrentWorker,
-    test_id: UUID4,
+    test: GetTest,
     update: schemas.UpdateTestModel,
 ) -> schemas.Test:
     data = update.model_dump(exclude_unset=True)
     body = schemas.UpdateTestModel().model_copy(update=data)
-    # Ensure that the worker is the one who the test belongs to
-    test = db.tests.get_test(session, test_id)
-    if test is None:
-        raise http_errors.NotFoundError(f"Test with id {test_id} does not exist.")
-
-    if test.worker_id != worker.id:
-        raise http_errors.UnauthorizedError("Insufficient privileges to update test.")
-
-    updated_test = db.tests.create_or_update_test(
+    updated_test = tests.create_or_update_test(
         session,
-        test_id=test_id,
+        test_id=test.id,
         worker_id=worker.id,
         status=body.status,
         error=body.error,

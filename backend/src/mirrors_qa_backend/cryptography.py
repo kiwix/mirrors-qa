@@ -15,7 +15,7 @@ def verify_signed_message(public_key: bytes, signature: bytes, message: bytes) -
     try:
         pem_public_key = serialization.load_pem_public_key(public_key)
     except Exception as exc:
-        raise PEMPublicKeyLoadError from exc
+        raise PEMPublicKeyLoadError("Unable to load public key") from exc
 
     try:
         pem_public_key.verify(  # pyright: ignore

@@ -1,3 +1,5 @@
+import base64
+import datetime
 from collections.abc import Generator
 from typing import Any
 
@@ -10,6 +12,7 @@ from faker import Faker
 from faker.providers import DynamicProvider
 from sqlalchemy.orm import Session as OrmSession
 
+from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import Session, models
 from mirrors_qa_backend.enums import StatusEnum
 
@@ -26,8 +29,14 @@ def dbsession() -> Generator[OrmSession, None, None]:
 
 
 @pytest.fixture
-def fake_data(faker: Faker) -> Faker:
-    """Adds additional providers to Faker."""
+def data_gen(faker: Faker) -> Faker:
+    """Adds additional providers to faker.
+
+    Registers test_country and test_status as providers.
+    data_gen.test_status() returns a  status.
+    data_gen.test_country() returns a country.
+    All other providers from Faker can be used accordingly.
+    """
     test_status_provider = DynamicProvider(
         provider_name="test_status",
         elements=list(StatusEnum),
@@ -49,7 +58,7 @@ def fake_data(faker: Faker) -> Faker:
 
 @pytest.fixture
 def tests(
-    dbsession: OrmSession, fake_data: Faker, worker: models.Worker, request: Any
+    dbsession: OrmSession, data_gen: Faker, worker: models.Worker, request: Any
 ) -> list[models.Test]:
     """Adds tests to the database using the num_test mark."""
     mark = request.node.get_closest_marker("num_tests")
@@ -60,8 +69,8 @@ def tests(
 
     tests = [
         models.Test(
-            status=fake_data.test_status(),
-            country=fake_data.test_country(),
+            status=data_gen.test_status(),
+            country=data_gen.test_country(),
         )
         for _ in range(num_tests)
     ]
@@ -96,3 +105,15 @@ def worker(public_key: RSAPublicKey, dbsession: OrmSession) -> models.Worker:
     )
     dbsession.add(worker)
     return worker
+
+
+@pytest.fixture
+def auth_message(worker: models.Worker) -> str:
+    return f"{worker.id}:{datetime.datetime.now(datetime.UTC).isoformat()}"
+
+
+@pytest.fixture
+def x_sshauth_signature(private_key: RSAPrivateKey, auth_message: str) -> str:
+    """Sign a message using RSA private key and encode it in base64"""
+    signature = sign_message(private_key, bytes(auth_message, encoding="ascii"))
+    return base64.b64encode(signature).decode()

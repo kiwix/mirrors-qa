@@ -74,7 +74,7 @@ def calculate_pagination_metadata(
     return Paginator(
         total_records=total_records,
         first_page=1,
-        page_size=page_size,
+        page_size=min(page_size, total_records),
         current_page=current_page,
         last_page=math.ceil(total_records / page_size),
     )

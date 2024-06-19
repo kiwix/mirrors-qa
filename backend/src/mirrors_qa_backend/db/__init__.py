@@ -7,12 +7,7 @@ from sqlalchemy.orm import Session as OrmSession
 from sqlalchemy.orm import sessionmaker
 
 from mirrors_qa_backend import logger
-from mirrors_qa_backend.db import (
-    mirrors,
-    models,
-    tests,
-    worker,
-)
+from mirrors_qa_backend.db import mirrors, models
 from mirrors_qa_backend.extract import get_current_mirrors
 from mirrors_qa_backend.settings import Settings
 
@@ -63,10 +58,3 @@ def initialize_mirrors() -> None:
                 f"Added {result.nb_mirrors_added} mirrors. "
                 f"Disabled {result.nb_mirrors_disabled} mirrors."
             )
-
-
-__all__ = [
-    "tests",
-    "worker",
-    "mirrors",
-]

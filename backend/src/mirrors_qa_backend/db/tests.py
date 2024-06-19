@@ -7,7 +7,7 @@ from sqlalchemy import UnaryExpression, asc, desc, func, select
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db import models
-from mirrors_qa_backend.db.exceptions import ModelDoesNotExistError
+from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.settings import Settings
 
@@ -25,7 +25,7 @@ def filter_test(
     *,
     worker_id: str | None = None,
     country: str | None = None,
-    status: list[StatusEnum] | None = None,
+    statuses: list[StatusEnum] | None = None,
 ) -> bool:
     """Checks if a test has the same attribute as the provided attribute.
 
@@ -36,7 +36,7 @@ def filter_test(
         return False
     if country is not None and test.country != country:
         return False
-    if status is not None and test.status not in status:
+    if statuses is not None and test.status not in statuses:
         return False
     return True
 
@@ -52,7 +52,7 @@ def list_tests(
     *,
     worker_id: str | None = None,
     country: str | None = None,
-    status: list[StatusEnum] | None = None,
+    statuses: list[StatusEnum] | None = None,
     page_num: int = 1,
     page_size: int = Settings.MAX_PAGE_SIZE,
     sort_column: TestSortColumnEnum = TestSortColumnEnum.requested_on,
@@ -60,8 +60,8 @@ def list_tests(
 ) -> TestListResult:
 
     # If no status is provided, populate status with all the allowed values
-    if status is None:
-        status = list(StatusEnum)
+    if statuses is None:
+        statuses = list(StatusEnum)
 
     if sort_direction == SortDirectionEnum.asc:
         direction = asc
@@ -86,9 +86,9 @@ def list_tests(
     query = (
         select(func.count().over().label("total_records"), models.Test)
         .where(
-            (models.Test.worker_id == worker_id) | (worker_id == None),  # noqa
-            (models.Test.country == country) | (country == None),  # noqa
-            (models.Test.status.in_(status)),
+            (models.Test.worker_id == worker_id) | (worker_id is None),
+            (models.Test.country == country) | (country is None),
+            (models.Test.status.in_(statuses)),
         )
         .order_by(*order_by)
         .offset((page_num - 1) * page_size)
@@ -127,7 +127,7 @@ def create_or_update_test(
     else:
         test = get_test(session, test_id)
         if test is None:
-            raise ModelDoesNotExistError(f"Test with id: {test_id} does not exist.")
+            raise RecordDoesNotExistError(f"Test with id: {test_id} does not exist.")
 
     # If a value is provided, it takes precedence over the default value of the model
     test.worker_id = worker_id if worker_id else test.worker_id

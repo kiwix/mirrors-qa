@@ -1,13 +1,9 @@
-import base64
-import datetime
 import uuid
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import models
 
 
@@ -48,30 +44,19 @@ def test_tests_list(client: TestClient, tests: list[models.Test]):
         (False, status.HTTP_401_UNAUTHORIZED),
     ],
 )
-def test_test_patch_success(
-    worker: models.Worker,
-    private_key: RSAPrivateKey,
-    client: TestClient,
+def test_test_patch(
     tests: list[models.Test],
-    with_auth: bool,  # noqa
+    client: TestClient,
+    access_token: str,
+    with_auth: bool,  # noqa: FBT001
     expected_status: int,
 ):
     test = tests[0]
     headers = {"Content-type": "application/json"}
     if with_auth:
-        message = f"{worker.id}:{datetime.datetime.now(datetime.UTC).isoformat()}"
-        signature = sign_message(private_key, bytes(message, encoding="ascii"))
-        x_sshauth_signature = base64.b64encode(signature).decode()
-        response = client.post(
-            "/auth/authenticate",
-            headers={
-                "Content-type": "application/json",
-                "X-SSHAuth-Message": message,
-                "X-SSHAuth-Signature": x_sshauth_signature,
-            },
-        )
-        access_token = response.json()["access_token"]
         headers["Authorization"] = f"Bearer {access_token}"
 
-    response = client.patch(f"/tests/{test.id}", headers=headers, json={})
+    response = client.patch(
+        f"/tests/{test.id}", headers=headers, json={"status": test.status.name}
+    )
     assert response.status_code == expected_status
