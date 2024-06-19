@@ -215,7 +215,7 @@ testpaths = ["tests"]
 pythonpath = [".", "src"]
 addopts = "--strict-markers"
 markers = [
-    "num_tests: number ts to create in the database (default: 10)",
+    "num_tests: number of tests to create in the database (default: 10)",
 ]
 
 [tool.coverage.paths]
