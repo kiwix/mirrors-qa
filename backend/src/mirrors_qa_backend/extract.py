@@ -31,7 +31,9 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         resp = requests.get(Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT)
         resp.raise_for_status()
     except requests.RequestException as exc:
-        raise MirrorsRequestError from exc
+        raise MirrorsRequestError(
+            "network error while fetching mirrors from url"
+        ) from exc
 
     soup = BeautifulSoup(resp.text, features="html.parser")
     body = soup.find("tbody")

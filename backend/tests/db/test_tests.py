@@ -96,3 +96,25 @@ def test_update_test(dbsession: OrmSession, tests: list[models.Test], data_gen: 
     for key, value in update_values.items():
         if hasattr(updated_test, key):
             assert getattr(updated_test, key) == value
+
+
+@pytest.mark.num_tests(10, status=StatusEnum.PENDING)
+@pytest.mark.parametrize(
+    ["interval", "expected_status"],
+    [
+        (datetime.timedelta(seconds=0), StatusEnum.MISSED),
+        (datetime.timedelta(days=7), StatusEnum.PENDING),
+    ],
+)
+def test_expire_tests(
+    dbsession: OrmSession,
+    tests: list[models.Test],
+    interval: datetime.timedelta,
+    expected_status: StatusEnum,
+):
+    for test in tests:
+        assert test.status == StatusEnum.PENDING
+
+    db_tests.expire_tests(dbsession, interval)
+    for test in tests:
+        assert test.status == expected_status

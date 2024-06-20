@@ -33,3 +33,9 @@ class Settings:
     # number of hours before access tokens expire
     TOKEN_EXPIRY = int(getenv("TOKEN_EXPIRY", default=24))
     JWT_SECRET: str = getenv("JWT_SECRET", mandatory=True)
+    # number of hours the scheduler sleeps before attempting to create tests
+    SCHEDULER_SLEEP_INTERVAL = int(getenv("SCHEDULER_SLEEP_INTERVAL", default=3))
+    # number of hours into the past to determine if a worker is idle
+    IDLE_WORKER_INTERVAL = int(getenv("IDLE_WORKER_INTERVAL", default=1))
+    # number of hours to wait before expiring a test whose data never arrived
+    EXPIRE_TEST_INTERVAL = int(getenv("EXPIRE_TEST_INTERVAL", default=24))

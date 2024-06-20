@@ -2,10 +2,11 @@
 import datetime
 
 import jwt
+import paramiko
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 
 from mirrors_qa_backend.exceptions import PEMPublicKeyLoadError
 from mirrors_qa_backend.settings import Settings
@@ -42,6 +43,36 @@ def sign_message(private_key: RSAPrivateKey, message: bytes) -> bytes:
         ),
         hashes.SHA256(),
     )
+
+
+def generate_private_key(key_size: int = 2048) -> RSAPrivateKey:
+    return rsa.generate_private_key(public_exponent=65537, key_size=key_size)
+
+
+def serialize_private_key(private_key: RSAPrivateKey) -> bytes:
+    return private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+
+def generate_public_key(private_key: RSAPrivateKey) -> RSAPublicKey:
+    return private_key.public_key()
+
+
+def serialize_public_key(public_key: RSAPublicKey) -> bytes:
+    return public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+
+
+def get_public_key_fingerprint(public_key: RSAPublicKey) -> str:
+    """Compute the SHA256 fingerprint of the public key"""
+    return paramiko.RSAKey(
+        key=public_key
+    ).fingerprint  # pyright: ignore[reportUnknownMemberType, UnknownVariableType]
 
 
 def generate_access_token(worker_id: str) -> str:

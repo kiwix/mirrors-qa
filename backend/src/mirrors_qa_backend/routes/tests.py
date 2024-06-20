@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi import status as status_codes
 
 from mirrors_qa_backend import schemas, serializer
-from mirrors_qa_backend.db import tests
+from mirrors_qa_backend.db import tests, worker
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.routes.dependencies import (
     CurrentWorker,
@@ -78,7 +78,7 @@ def get_test(test: RetrievedTest) -> schemas.Test:
 )
 def update_test(
     session: DbSession,
-    worker: CurrentWorker,
+    current_worker: CurrentWorker,
     test: RetrievedTest,
     update: schemas.UpdateTestModel,
 ) -> schemas.Test:
@@ -87,7 +87,7 @@ def update_test(
     updated_test = tests.create_or_update_test(
         session,
         test_id=test.id,
-        worker_id=worker.id,
+        worker_id=current_worker.id,
         status=body.status,
         error=body.error,
         ip_address=body.ip_address,
@@ -99,5 +99,5 @@ def update_test(
         duration=body.duration,
         speed=body.speed,
     )
-
+    worker.update_worker_last_seen(session, current_worker)
     return serializer.serialize_test(updated_test)

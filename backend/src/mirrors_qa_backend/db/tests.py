@@ -1,9 +1,10 @@
+# ruff: noqa: DTZ005, DTZ001
 import datetime
 from dataclasses import dataclass
 from ipaddress import IPv4Address
 from uuid import UUID
 
-from sqlalchemy import UnaryExpression, asc, desc, func, select
+from sqlalchemy import UnaryExpression, asc, desc, func, select, update
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db import models
@@ -144,5 +145,59 @@ def create_or_update_test(
     test.started_on = started_on if started_on else test.started_on
 
     session.add(test)
+    session.flush()
 
     return test
+
+
+def create_test(
+    session: OrmSession,
+    *,
+    worker_id: str | None = None,
+    status: StatusEnum = StatusEnum.PENDING,
+    error: str | None = None,
+    ip_address: IPv4Address | None = None,
+    asn: str | None = None,
+    country: str | None = None,
+    location: str | None = None,
+    latency: int | None = None,
+    download_size: int | None = None,
+    duration: int | None = None,
+    speed: float | None = None,
+    started_on: datetime.datetime | None = None,
+) -> models.Test:
+    return create_or_update_test(
+        session,
+        test_id=None,
+        worker_id=worker_id,
+        status=status,
+        error=error,
+        ip_address=ip_address,
+        asn=asn,
+        country=country,
+        location=location,
+        latency=latency,
+        download_size=download_size,
+        duration=duration,
+        speed=speed,
+        started_on=started_on,
+    )
+
+
+def expire_tests(
+    session: OrmSession, interval: datetime.timedelta
+) -> list[models.Test]:
+    """Change the status of PENDING tests created before the interval to MISSED"""
+    end = datetime.datetime.now() - interval
+    begin = datetime.datetime(1970, 1, 1)
+    return list(
+        session.scalars(
+            update(models.Test)
+            .where(
+                models.Test.requested_on.between(begin, end),
+                models.Test.status == StatusEnum.PENDING,
+            )
+            .values(status=StatusEnum.MISSED)
+            .returning(models.Test)
+        ).all()
+    )

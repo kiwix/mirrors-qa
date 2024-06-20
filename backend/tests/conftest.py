@@ -67,10 +67,13 @@ def tests(
     else:
         num_tests = 10
 
+    status = mark.kwargs.get("status", None)
+    country = mark.kwargs.get("country", None)
+
     tests = [
         models.Test(
-            status=data_gen.test_status(),
-            country=data_gen.test_country(),
+            status=status if status else data_gen.test_status(),
+            country=country if country else data_gen.test_country(),
         )
         for _ in range(num_tests)
     ]
