@@ -1,15 +1,13 @@
 # pyright: strict, reportGeneralTypeIssues=false
-import datetime
+from pathlib import Path
 
-import jwt
 import paramiko
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 
 from mirrors_qa_backend.exceptions import PEMPublicKeyLoadError
-from mirrors_qa_backend.settings import Settings
 
 
 def verify_signed_message(public_key: bytes, signature: bytes, message: bytes) -> bool:
@@ -45,16 +43,11 @@ def sign_message(private_key: RSAPrivateKey, message: bytes) -> bytes:
     )
 
 
-def generate_private_key(key_size: int = 2048) -> RSAPrivateKey:
-    return rsa.generate_private_key(public_exponent=65537, key_size=key_size)
-
-
-def serialize_private_key(private_key: RSAPrivateKey) -> bytes:
-    return private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
+def load_private_key_from_path(private_key_fpath: Path) -> RSAPrivateKey:
+    with private_key_fpath.open("rb") as key_file:
+        return serialization.load_pem_private_key(
+            key_file.read(), password=None
+        )  # pyright: ignore[reportReturnType]
 
 
 def generate_public_key(private_key: RSAPrivateKey) -> RSAPublicKey:
@@ -73,15 +66,3 @@ def get_public_key_fingerprint(public_key: RSAPublicKey) -> str:
     return paramiko.RSAKey(
         key=public_key
     ).fingerprint  # pyright: ignore[reportUnknownMemberType, UnknownVariableType]
-
-
-def generate_access_token(worker_id: str) -> str:
-    issue_time = datetime.datetime.now(datetime.UTC)
-    expire_time = issue_time + datetime.timedelta(hours=Settings.TOKEN_EXPIRY)
-    payload = {
-        "iss": "mirrors-qa-backend",  # issuer
-        "exp": expire_time.timestamp(),  # expiration time
-        "iat": issue_time.timestamp(),  # issued at
-        "subject": worker_id,
-    }
-    return jwt.encode(payload, key=Settings.JWT_SECRET, algorithm="HS256")

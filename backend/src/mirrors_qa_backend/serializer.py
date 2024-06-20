@@ -12,7 +12,7 @@ def serialize_test(test: models.Test) -> schemas.Test:
         isp=test.isp,
         ip_address=test.ip_address,
         asn=test.asn,
-        country=test.country,
+        country_code=test.country_code,
         location=test.location,
         latency=test.latency,
         download_size=test.download_size,

@@ -49,7 +49,6 @@ services:
     container_name: mirrors-qa-scheduler
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
-      JWT_SECRET: DH8kSxcflUVfNRdkEiJJCn2dOOKI3qfw
       DEBUG: true
     command: mirrors-qa-scheduler
     networks:

@@ -190,6 +190,8 @@ ignore = [
   "S603",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Ignore warnings on missing timezone info
+  "DTZ005", "DTZ001", "DTZ006",
 ]
 unfixable = [
   # Don't touch unused imports
@@ -216,7 +218,7 @@ testpaths = ["tests"]
 pythonpath = [".", "src"]
 addopts = "--strict-markers"
 markers = [
-    "num_tests(num=10, *, status=..., country=...): create num tests in the database using status and/or country. Random data is chosen for country or status if either is not set",
+    "num_tests(num=10, *, status=..., country_code=...): create num tests in the database using status and/or country_code. Random data is chosen for country_code or status if either is not set",
 ]
 
 [tool.coverage.paths]

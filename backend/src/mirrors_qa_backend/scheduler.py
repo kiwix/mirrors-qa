@@ -2,29 +2,31 @@ import datetime
 import time
 
 from mirrors_qa_backend import logger
-from mirrors_qa_backend.db import Session, tests, worker
+from mirrors_qa_backend.db import Session
+from mirrors_qa_backend.db.tests import create_test, expire_tests, list_tests
+from mirrors_qa_backend.db.worker import get_idle_workers
 from mirrors_qa_backend.enums import StatusEnum
-from mirrors_qa_backend.settings import Settings
+from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 
 def main():
     while True:
         with Session.begin() as session:
-            # expire tesst whose results have not been reported
-            expired_tests = tests.expire_tests(
+            # expire tests whose results have not been reported
+            expired_tests = expire_tests(
                 session,
-                interval=datetime.timedelta(hours=Settings.EXPIRE_TEST_INTERVAL),
+                interval=datetime.timedelta(hours=SchedulerSettings.EXPIRE_TEST_HOURS),
             )
             for expired_test in expired_tests:
                 logger.info(
                     f"Expired test {expired_test.id}, "
-                    f"country: {expired_test.country}, "
-                    f"worker: {expired_test.worker_id}"
+                    f"country: {expired_test.country_code}, "
+                    f"worker: {expired_test.worker_id!r}"
                 )
 
-            idle_workers = worker.get_idle_workers(
+            idle_workers = get_idle_workers(
                 session,
-                interval=datetime.timedelta(hours=Settings.IDLE_WORKER_INTERVAL),
+                interval=datetime.timedelta(hours=SchedulerSettings.IDLE_WORKER_HOURS),
             )
             if not idle_workers:
                 logger.info("No idle workers found.")
@@ -33,7 +35,7 @@ def main():
             for idle_worker in idle_workers:
                 if not idle_worker.countries:
                     logger.info(
-                        f"No countries registered for idle worker {idle_worker.id}"
+                        f"No countries registered for idle worker {idle_worker.id!r}"
                     )
                     continue
                 for country in idle_worker.countries:
@@ -41,25 +43,25 @@ def main():
                     # a test for a country might still be PENDING as the interval
                     # for expiration and that of the scheduler might overlap.
                     # In such scenarios, we skip creating a test for that country.
-                    pending_tests = tests.list_tests(
+                    pending_tests = list_tests(
                         session,
                         worker_id=idle_worker.id,
                         statuses=[StatusEnum.PENDING],
-                        country=country.name,
+                        country_code=country.code,
                     )
 
                     if pending_tests.nb_tests:
                         logger.info(
                             "Skipping creation of new test entries for "
-                            f"{idle_worker.id} as {pending_tests.nb_tests} "
-                            "tests are still pending."
+                            f"{idle_worker.id!r} as {pending_tests.nb_tests} "
+                            f"tests are still pending for country {country.name}"
                         )
                         continue
 
-                    new_test = tests.create_test(
+                    new_test = create_test(
                         session=session,
                         worker_id=idle_worker.id,
-                        country=country.name,
+                        country_code=country.code,
                         status=StatusEnum.PENDING,
                     )
                     logger.info(
@@ -68,7 +70,7 @@ def main():
                     )
 
         sleep_interval = datetime.timedelta(
-            hours=Settings.SCHEDULER_SLEEP_INTERVAL
+            hours=SchedulerSettings.SCHEDULER_SLEEP_HOURS
         ).total_seconds()
 
         logger.info(f"Sleeping for {sleep_interval} seconds.")

@@ -7,14 +7,14 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from mirrors_qa_backend.cryptography import sign_message
-from mirrors_qa_backend.db import models
+from mirrors_qa_backend.db.models import Worker
 
 
 @pytest.mark.parametrize(
     ["datetime_str", "expected_status", "expected_response_contents"],
     [
         (
-            datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC).isoformat(),
+            datetime.datetime.fromtimestamp(0, tz=datetime.UTC).isoformat(),
             status.HTTP_401_UNAUTHORIZED,
             [],
         ),
@@ -32,7 +32,7 @@ from mirrors_qa_backend.db import models
 )
 def test_authenticate_worker(
     client: TestClient,
-    worker: models.Worker,
+    worker: Worker,
     private_key: RSAPrivateKey,
     datetime_str: str,
     expected_status: int,

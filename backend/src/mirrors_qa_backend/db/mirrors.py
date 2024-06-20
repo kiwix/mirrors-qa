@@ -56,7 +56,7 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
     return nb_created
 
 
-def create_or_update_status(
+def create_or_update_mirror_status(
     session: OrmSession, mirrors: list[schemas.Mirror]
 ) -> MirrorsUpdateResult:
     """Updates the status of mirrors in the database and creates any new mirrors.

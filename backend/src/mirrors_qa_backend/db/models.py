@@ -64,6 +64,8 @@ class Country(Base):
         cascade="all, delete-orphan",
     )
 
+    tests: Mapped[list[Test]] = relationship(back_populates="country", init=False)
+
     __table_args__ = (UniqueConstraint("name", "code"),)
 
 
@@ -131,7 +133,11 @@ class Test(Base):
     ip_address: Mapped[IPv4Address | None] = mapped_column(default=None)
     # autonomous system based on IP
     asn: Mapped[str | None] = mapped_column(default=None)
-    country: Mapped[str | None] = mapped_column(default=None)  # country based on IP
+    country_code: Mapped[str | None] = mapped_column(
+        ForeignKey("country.code"),
+        init=False,
+        default=None,
+    )
     location: Mapped[str | None] = mapped_column(default=None)  # city based on IP
     latency: Mapped[int | None] = mapped_column(default=None)  # milliseconds
     download_size: Mapped[int | None] = mapped_column(default=None)  # bytes
@@ -142,3 +148,5 @@ class Test(Base):
     )
 
     worker: Mapped[Worker | None] = relationship(back_populates="tests", init=False)
+
+    country: Mapped[Country | None] = relationship(back_populates="tests", init=False)

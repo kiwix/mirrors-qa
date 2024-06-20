@@ -28,7 +28,9 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         return tag.name == "tr" and tag.findChild("td", class_="newregion") is None
 
     try:
-        resp = requests.get(Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT)
+        resp = requests.get(
+            Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT_SECONDS
+        )
         resp.raise_for_status()
     except requests.RequestException as exc:
         raise MirrorsRequestError(
