@@ -17,7 +17,7 @@ class TestSortColumnEnum(Enum):
     started_on = "started_on"
     status = "status"
     worker_id = "worker_id"
-    country = "country"
+    country_code = "country_code"
     city = "city"
 
 

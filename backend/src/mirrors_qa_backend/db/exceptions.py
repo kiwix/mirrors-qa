@@ -7,3 +7,7 @@ class RecordDoesNotExistError(Exception):
 
 class EmptyMirrorsError(Exception):
     """An empty list was used to update the mirrors in the database."""
+
+
+class DuplicatePrimaryKeyError(Exception):
+    """A database record with the same primary key exists."""

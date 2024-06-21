@@ -40,6 +40,19 @@ services:
       BACKEND_ROOT_API: http://backend
       SLEEP_INTERVAL: 180
       DEBUG: true
+  scheduler:
+    depends_on:
+      postgresdb:
+        condition: service_healthy
+    build:
+      context: ../backend
+    container_name: mirrors-qa-scheduler
+    environment:
+      POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
+      DEBUG: true
+    command: mirrors-qa-scheduler
+    networks:
+      - mirrors-qa-network
 
 volumes:
   pg-data-mirrors-qa:

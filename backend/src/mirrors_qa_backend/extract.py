@@ -28,17 +28,21 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         return tag.name == "tr" and tag.findChild("td", class_="newregion") is None
 
     try:
-        resp = requests.get(Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT)
+        resp = requests.get(
+            Settings.MIRRORS_URL, timeout=Settings.REQUESTS_TIMEOUT_SECONDS
+        )
         resp.raise_for_status()
     except requests.RequestException as exc:
-        raise MirrorsRequestError from exc
+        raise MirrorsRequestError(
+            "network error while fetching mirrors from url"
+        ) from exc
 
     soup = BeautifulSoup(resp.text, features="html.parser")
     body = soup.find("tbody")
 
     if body is None or isinstance(body, NavigableString | int):
         raise MirrorsExtractError(
-            f"unable to parse mirrors information from {Settings.MIRRORS_URL!r}"
+            f"unable to parse mirrors information from {Settings.MIRRORS_URL}"
         )
 
     mirrors: list[schemas.Mirror] = []
@@ -54,7 +58,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         try:
             country: Any = pycountry.countries.search_fuzzy(country_name)[0]
         except LookupError:
-            logger.error(f"Could not get information for country: {country_name!r}")
+            logger.error(f"Could not get information for country: {country_name}")
             continue
         else:
             mirrors.append(

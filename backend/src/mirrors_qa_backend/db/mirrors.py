@@ -50,13 +50,13 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
         db_mirror.country = country
         session.add(db_mirror)
         logger.debug(
-            f"Registered new mirror: {db_mirror.id!r} for country: {country.name!r}"
+            f"Registered new mirror: {db_mirror.id} for country: {country.name}"
         )
         nb_created += 1
     return nb_created
 
 
-def create_or_update_status(
+def create_or_update_mirror_status(
     session: OrmSession, mirrors: list[schemas.Mirror]
 ) -> MirrorsUpdateResult:
     """Updates the status of mirrors in the database and creates any new mirrors.
@@ -96,16 +96,16 @@ def create_or_update_status(
     for db_mirror_id, db_mirror in db_mirrors.items():
         if db_mirror_id not in current_mirrors:
             logger.debug(
-                f"Disabling mirror: {db_mirror.id!r} for "
-                f"country: {db_mirror.country.name!r}"
+                f"Disabling mirror: {db_mirror.id} for "
+                f"country: {db_mirror.country.name}"
             )
             db_mirror.enabled = False
             session.add(db_mirror)
             result.nb_mirrors_disabled += 1
         elif not db_mirror.enabled:  # re-enable mirror if it was disabled
             logger.debug(
-                f"Re-enabling mirror: {db_mirror.id!r} for "
-                f"country: {db_mirror.country.name!r}"
+                f"Re-enabling mirror: {db_mirror.id} for "
+                f"country: {db_mirror.country.name}"
             )
             db_mirror.enabled = True
             session.add(db_mirror)

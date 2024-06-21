@@ -39,7 +39,7 @@ class UpdateTestModel(BaseModel):
     isp: str | None = None
     ip_address: IPv4Address | None = None
     asn: str | None = None
-    country: str | None = None
+    country_code: str | None = None
     location: str | None = None
     latency: int | None = None
     download_size: int | None = None

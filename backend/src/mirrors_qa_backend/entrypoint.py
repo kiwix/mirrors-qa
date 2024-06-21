@@ -1,8 +1,9 @@
 import argparse
 import logging
 
-from mirrors_qa_backend import db, logger
-from mirrors_qa_backend.db import mirrors
+from mirrors_qa_backend import logger
+from mirrors_qa_backend.db import Session
+from mirrors_qa_backend.db.mirrors import create_or_update_mirror_status
 from mirrors_qa_backend.extract import get_current_mirrors
 
 
@@ -17,8 +18,8 @@ def main():
     if args.verbose:
         logger.setLevel(logging.DEBUG)
 
-    with db.Session.begin() as session:
-        mirrors.create_or_update_status(session, get_current_mirrors())
+    with Session.begin() as session:
+        create_or_update_mirror_status(session, get_current_mirrors())
 
 
 if __name__ == "__main__":

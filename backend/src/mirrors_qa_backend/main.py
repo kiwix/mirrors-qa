@@ -2,14 +2,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from mirrors_qa_backend import db
+from mirrors_qa_backend.db import initialize_mirrors, upgrade_db_schema
 from mirrors_qa_backend.routes import auth, tests
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    db.upgrade_db_schema()
-    db.initialize_mirrors()
+    upgrade_db_schema()
+    initialize_mirrors()
     yield
 
 

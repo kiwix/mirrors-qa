@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from ipaddress import IPv4Address
 from uuid import UUID
 
-from sqlalchemy import UnaryExpression, asc, desc, func, select
+from sqlalchemy import UnaryExpression, asc, desc, func, select, update
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db import models
+from mirrors_qa_backend.db.country import get_country_or_none
 from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.settings import Settings
@@ -24,7 +25,7 @@ def filter_test(
     test: models.Test,
     *,
     worker_id: str | None = None,
-    country: str | None = None,
+    country_code: str | None = None,
     statuses: list[StatusEnum] | None = None,
 ) -> bool:
     """Checks if a test has the same attribute as the provided attribute.
@@ -34,7 +35,7 @@ def filter_test(
     """
     if worker_id is not None and test.worker_id != worker_id:
         return False
-    if country is not None and test.country != country:
+    if country_code is not None and test.country_code != country_code:
         return False
     if statuses is not None and test.status not in statuses:
         return False
@@ -51,7 +52,7 @@ def list_tests(
     session: OrmSession,
     *,
     worker_id: str | None = None,
-    country: str | None = None,
+    country_code: str | None = None,
     statuses: list[StatusEnum] | None = None,
     page_num: int = 1,
     page_size: int = Settings.MAX_PAGE_SIZE,
@@ -87,7 +88,7 @@ def list_tests(
         select(func.count().over().label("total_records"), models.Test)
         .where(
             (models.Test.worker_id == worker_id) | (worker_id is None),
-            (models.Test.country == country) | (country is None),
+            (models.Test.country_code == country_code) | (country_code is None),
             (models.Test.status.in_(statuses)),
         )
         .order_by(*order_by)
@@ -113,7 +114,7 @@ def create_or_update_test(
     error: str | None = None,
     ip_address: IPv4Address | None = None,
     asn: str | None = None,
-    country: str | None = None,
+    country_code: str | None = None,
     location: str | None = None,
     latency: int | None = None,
     download_size: int | None = None,
@@ -135,7 +136,9 @@ def create_or_update_test(
     test.error = error if error else test.error
     test.ip_address = ip_address if ip_address else test.ip_address
     test.asn = asn if asn else test.asn
-    test.country = country if country else test.country
+    test.country = (
+        get_country_or_none(session, country_code) if country_code else test.country
+    )
     test.location = location if location else test.location
     test.latency = latency if latency else test.latency
     test.download_size = download_size if download_size else test.download_size
@@ -144,5 +147,59 @@ def create_or_update_test(
     test.started_on = started_on if started_on else test.started_on
 
     session.add(test)
+    session.flush()
 
     return test
+
+
+def create_test(
+    session: OrmSession,
+    *,
+    worker_id: str | None = None,
+    status: StatusEnum = StatusEnum.PENDING,
+    error: str | None = None,
+    ip_address: IPv4Address | None = None,
+    asn: str | None = None,
+    country_code: str | None = None,
+    location: str | None = None,
+    latency: int | None = None,
+    download_size: int | None = None,
+    duration: int | None = None,
+    speed: float | None = None,
+    started_on: datetime.datetime | None = None,
+) -> models.Test:
+    return create_or_update_test(
+        session,
+        test_id=None,
+        worker_id=worker_id,
+        status=status,
+        error=error,
+        ip_address=ip_address,
+        asn=asn,
+        country_code=country_code,
+        location=location,
+        latency=latency,
+        download_size=download_size,
+        duration=duration,
+        speed=speed,
+        started_on=started_on,
+    )
+
+
+def expire_tests(
+    session: OrmSession, interval: datetime.timedelta
+) -> list[models.Test]:
+    """Change the status of PENDING tests created before the interval to MISSED"""
+    end = datetime.datetime.now() - interval
+    begin = datetime.datetime.fromtimestamp(0)
+    return list(
+        session.scalars(
+            update(models.Test)
+            .where(
+                models.Test.requested_on.between(begin, end),
+                models.Test.status == StatusEnum.PENDING,
+            )
+            .values(status=StatusEnum.MISSED)
+            .returning(models.Test)
+        ).all()
+    )
