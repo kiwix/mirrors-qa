@@ -109,7 +109,7 @@ def public_key(private_key: RSAPrivateKey) -> RSAPublicKey:
 
 
 @pytest.fixture(scope="session")
-def private_key_bytes(private_key: RSAPrivateKey) -> bytes:
+def private_key_data(private_key: RSAPrivateKey) -> bytes:
     return private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,

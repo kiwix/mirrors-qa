@@ -28,9 +28,7 @@ def create_worker(
 ) -> Worker:
     """Creates a worker using RSA private key."""
     if get_worker(session, worker_id) is not None:
-        raise DuplicatePrimaryKeyError(
-            f"A worker with id {worker_id!r} already exists."
-        )
+        raise DuplicatePrimaryKeyError(f"A worker with id {worker_id} already exists.")
     try:
         private_key = load_private_key_from_path(private_key_fpath)
     except Exception as exc:

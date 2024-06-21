@@ -21,7 +21,7 @@ def main():
                 logger.info(
                     f"Expired test {expired_test.id}, "
                     f"country: {expired_test.country_code}, "
-                    f"worker: {expired_test.worker_id!r}"
+                    f"worker: {expired_test.worker_id}"
                 )
 
             idle_workers = get_idle_workers(
@@ -35,7 +35,7 @@ def main():
             for idle_worker in idle_workers:
                 if not idle_worker.countries:
                     logger.info(
-                        f"No countries registered for idle worker {idle_worker.id!r}"
+                        f"No countries registered for idle worker {idle_worker.id}"
                     )
                     continue
                 for country in idle_worker.countries:
@@ -53,7 +53,7 @@ def main():
                     if pending_tests.nb_tests:
                         logger.info(
                             "Skipping creation of new test entries for "
-                            f"{idle_worker.id!r} as {pending_tests.nb_tests} "
+                            f"{idle_worker.id} as {pending_tests.nb_tests} "
                             f"tests are still pending for country {country.name}"
                         )
                         continue

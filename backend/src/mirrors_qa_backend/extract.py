@@ -42,7 +42,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
 
     if body is None or isinstance(body, NavigableString | int):
         raise MirrorsExtractError(
-            f"unable to parse mirrors information from {Settings.MIRRORS_URL!r}"
+            f"unable to parse mirrors information from {Settings.MIRRORS_URL}"
         )
 
     mirrors: list[schemas.Mirror] = []
@@ -58,7 +58,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         try:
             country: Any = pycountry.countries.search_fuzzy(country_name)[0]
         except LookupError:
-            logger.error(f"Could not get information for country: {country_name!r}")
+            logger.error(f"Could not get information for country: {country_name}")
             continue
         else:
             mirrors.append(

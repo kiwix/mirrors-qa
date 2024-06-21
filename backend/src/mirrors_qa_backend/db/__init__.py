@@ -45,12 +45,12 @@ def initialize_mirrors() -> None:
         if nb_mirrors == 0:
             logger.info("No mirrors exist in database.")
             if not current_mirrors:
-                logger.info(f"No mirrors were found on {Settings.MIRRORS_URL!r}")
+                logger.info(f"No mirrors were found on {Settings.MIRRORS_URL}")
                 return
             result = create_or_update_mirror_status(session, current_mirrors)
             logger.info(
                 f"Registered {result.nb_mirrors_added} mirrors "
-                f"from {Settings.MIRRORS_URL!r}"
+                f"from {Settings.MIRRORS_URL}"
             )
         else:
             logger.info(f"Found {nb_mirrors} mirrors in database.")

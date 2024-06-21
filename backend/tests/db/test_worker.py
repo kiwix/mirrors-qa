@@ -6,7 +6,7 @@ from mirrors_qa_backend.db.models import Country
 from mirrors_qa_backend.db.worker import create_worker
 
 
-def test_create_worker(dbsession: OrmSession, tmp_path: Path, private_key_bytes: bytes):
+def test_create_worker(dbsession: OrmSession, tmp_path: Path, private_key_data: bytes):
     worker_id = "test"
     countries = [
         Country(code="ng", name="Nigeria"),
@@ -15,8 +15,7 @@ def test_create_worker(dbsession: OrmSession, tmp_path: Path, private_key_bytes:
     dbsession.add_all(countries)
 
     private_key_fpath = tmp_path / "key.pem"
-    with private_key_fpath.open("wb") as key_file:
-        key_file.write(private_key_bytes)
+    private_key_fpath.write_bytes(private_key_data)
 
     new_worker = create_worker(
         dbsession,
