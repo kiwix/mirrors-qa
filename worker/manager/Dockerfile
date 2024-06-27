@@ -9,4 +9,11 @@ COPY pyproject.toml README.md /src/
 RUN pip install --no-cache-dir /src \
  && rm -rf /src
 
-CMD ["mirrors-qa-worker"]
+ENV WORKDIR /data
+VOLUME /data
+
+ENV WIREGUARD_IMAGE lscr.io/linuxserver/wireguard:latest
+
+VOLUME /var/run/docker.sock
+
+CMD ["mirrors-qa-manager"]
