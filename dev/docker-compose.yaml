@@ -44,23 +44,23 @@ services:
       IDLE_WORKER_SECONDS: 180
       DEBUG: true
     command: mirrors-qa-backend scheduler
-  worker_manager:
-    build:
-      context: ../worker/manager
-    depends_on:
-      backend:
-        condition: service_healthy
-    container_name: mirrors-qa-manager
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /lib/modules:/lib/modules
-      - ./data:/data
-      - ./id_rsa:/etc/ssh/keys/id_rsa
-    environment:
-      - BACKEND_API_URI=http://backend
-      - TASK_WORKER_IMAGE=${TASK_WORKER_IMAGE:?TASK_WORKER_IMAGE not set}
-      - WORKER_ID=${WORKER_ID:?WORKER_ID not set}
-    command: mirrors-qa-manager --verbose ${WORKER_ID}
+# worker_manager:
+#   build:
+#     context: ../worker/manager
+#   depends_on:
+#     backend:
+#       condition: service_healthy
+#   container_name: mirrors-qa-manager
+#   volumes:
+#     - /var/run/docker.sock:/var/run/docker.sock
+#     - /lib/modules:/lib/modules
+#     - ./data:/data
+#     - ./id_rsa:/etc/ssh/keys/id_rsa
+#   environment:
+#     - BACKEND_API_URI=http://backend
+#     - TASK_WORKER_IMAGE=${TASK_WORKER_IMAGE:?TASK_WORKER_IMAGE not set}
+#     - WORKER_ID=${WORKER_ID:?WORKER_ID not set}
+#   command: mirrors-qa-manager --verbose ${WORKER_ID}
 
 volumes:
   pg-data-mirrors-qa:
