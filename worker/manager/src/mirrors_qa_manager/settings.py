@@ -22,7 +22,7 @@ class Settings:
     # in-container directory for worker manager
     WORKDIR_FPATH = Path(getenv("WORKDIR", default="/data"))
     DOCKER_SOCKET = Path(getenv("DOCKER_SOCKET", default="/var/run/docker.sock"))
-    PRIVATE_KEY_FPATH = Path(getenv("PRIVATE_KEY_FILE", mandatory=True))
+    PRIVATE_KEY_FPATH = Path(getenv("PRIVATE_KEY_FILE", default="/etc/ssh/keys/id_rsa"))
     DOCKER_CLIENT_TIMEOUT = int(getenv("DOCKER_CLIENT_TIMEOUT", default=180))
     # number of times to retry a call to the Docker daemon
     DOCKER_API_RETRIES = int(getenv("DOCKER_API_RETRIES", default=3))

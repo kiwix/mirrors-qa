@@ -33,7 +33,7 @@ def retry(
                 # docker-hub issues
                 except (ImageNotFound, APIError) as exc:
                     if attempt <= retries:
-                        logger.debug(
+                        logger.error(
                             f"docker api error for {func.__name__} "
                             f"(attempt {attempt}): {exc}"
                         )

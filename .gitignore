@@ -166,3 +166,4 @@ cython_debug/
 # project files
 *.pem
 data
+id_rsa
