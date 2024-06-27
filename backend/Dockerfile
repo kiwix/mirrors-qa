@@ -1,5 +1,7 @@
 FROM python:3.11-slim-bookworm
 LABEL org.opencontainers.image.source=https://github.com/kiwix/mirrors-qa
+
+RUN apt-get update && apt-get install -y curl
 # Copy code
 COPY src /src/src
 # Copy pyproject.toml and its dependencies

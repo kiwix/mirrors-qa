@@ -37,8 +37,7 @@ dynamic = ["version"]
 Homepage = "https://github.com/kiwix/mirrors-qa"
 
 [project.scripts]
-update-mirrors = "mirrors_qa_backend.entrypoint:main"
-mirrors-qa-scheduler = "mirrors_qa_backend.scheduler:main"
+mirrors-qa-backend = "mirrors_qa_backend.entrypoint:main"
 
 [project.optional-dependencies]
 scripts = [

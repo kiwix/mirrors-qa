@@ -1,5 +1,4 @@
 # pyright: strict, reportGeneralTypeIssues=false
-from pathlib import Path
 
 import paramiko
 from cryptography.exceptions import InvalidSignature
@@ -41,13 +40,6 @@ def sign_message(private_key: RSAPrivateKey, message: bytes) -> bytes:
         ),
         hashes.SHA256(),
     )
-
-
-def load_private_key_from_path(private_key_fpath: Path) -> RSAPrivateKey:
-    with private_key_fpath.open("rb") as key_file:
-        return serialization.load_pem_private_key(
-            key_file.read(), password=None
-        )  # pyright: ignore[reportReturnType]
 
 
 def generate_public_key(private_key: RSAPrivateKey) -> RSAPublicKey:

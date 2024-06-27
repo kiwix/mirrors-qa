@@ -1,5 +1,6 @@
 import datetime
 import time
+from argparse import Namespace
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
@@ -9,13 +10,15 @@ from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 
-def main():
+def main(args: Namespace):  # noqa: ARG001
     while True:
         with Session.begin() as session:
             # expire tests whose results have not been reported
             expired_tests = expire_tests(
                 session,
-                interval=datetime.timedelta(hours=SchedulerSettings.EXPIRE_TEST_HOURS),
+                interval=datetime.timedelta(
+                    seconds=SchedulerSettings.EXPIRE_TEST_SECONDS
+                ),
             )
             for expired_test in expired_tests:
                 logger.info(
@@ -26,7 +29,9 @@ def main():
 
             idle_workers = get_idle_workers(
                 session,
-                interval=datetime.timedelta(hours=SchedulerSettings.IDLE_WORKER_HOURS),
+                interval=datetime.timedelta(
+                    seconds=SchedulerSettings.IDLE_WORKER_SECONDS
+                ),
             )
             if not idle_workers:
                 logger.info("No idle workers found.")
@@ -69,9 +74,7 @@ def main():
                         f"{idle_worker.id} in country {country.name}"
                     )
 
-        sleep_interval = datetime.timedelta(
-            hours=SchedulerSettings.SCHEDULER_SLEEP_HOURS
-        ).total_seconds()
-
-        logger.info(f"Sleeping for {sleep_interval} seconds.")
-        time.sleep(sleep_interval)
+        logger.info(
+            f"Sleeping for {SchedulerSettings.SCHEDULER_SLEEP_SECONDS} seconds."
+        )
+        time.sleep(SchedulerSettings.SCHEDULER_SLEEP_SECONDS)
