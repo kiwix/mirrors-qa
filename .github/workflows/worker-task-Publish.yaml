@@ -1,15 +1,15 @@
-name: Publish worker-manager Docker image
+name: Publish worker-task Docker image
 
 on:
   push:
     paths:
-      - 'worker/manager/**'
+      - 'worker/task/**'
     branches:
       - main
 
 jobs:
 
-  publish-worker-manager:
+  publish-worker-task:
     runs-on: ubuntu-22.04
     steps:
       - name: Retrieve source code
@@ -18,11 +18,11 @@ jobs:
       - name: Build and publish Docker Image
         uses: openzim/docker-publish-action@v10
         with:
-          image-name: kiwix/mirrors-qa-worker-manager
+          image-name: kiwix/mirrors-qa-worker-task
           latest-on-tag: true
           tag-pattern: /^v([0-9.]+)$/
           restrict-to: kiwix/mirrors-qa
-          context: worker/manager
+          context: worker/task
           registries: ghcr.io
           credentials:
             GHCRIO_USERNAME=${{ secrets.GHCR_USERNAME }}
