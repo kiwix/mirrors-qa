@@ -1,5 +1,4 @@
 import sys
-from argparse import Namespace
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
@@ -8,7 +7,7 @@ from mirrors_qa_backend.exceptions import MirrorsRequestError
 from mirrors_qa_backend.extract import get_current_mirrors
 
 
-def update_mirrors(args: Namespace) -> None:  # noqa: ARG001
+def update_mirrors() -> None:
     logger.info("Updating mirrors list.")
     try:
         with Session.begin() as session:

@@ -23,6 +23,7 @@ dependencies = [
     "cryptography==42.0.8",
     "PyJWT==2.8.0",
     "paramiko==3.4.0",
+    "humanfriendly==10.0",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
