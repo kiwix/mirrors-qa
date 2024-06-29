@@ -165,5 +165,8 @@ cython_debug/
 
 # project files
 *.pem
-data
+*.conf
+dev/data/**
+!dev/data/README.md
+!dev/.env
 id_rsa

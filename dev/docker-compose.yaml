@@ -25,6 +25,7 @@ services:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
       JWT_SECRET: DH8kSxcflUVfNRdkEiJJCn2dOOKI3qfw
       DEBUG: true
+      REQUESTS_TIMEOUT_DURATION: 30s
     ports:
       - 8000:80
     healthcheck:
@@ -41,26 +42,39 @@ services:
     container_name: mirrors-qa-scheduler
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
-      IDLE_WORKER_SECONDS: 180
+      IDLE_WORKER_DURATION: 1d
+      SCHEDULER_SLEEP_DURATION: 1m
+      EXPIRE_TEST_DURATION: 2m
       DEBUG: true
     command: mirrors-qa-backend scheduler
-# worker_manager:
-#   build:
-#     context: ../worker/manager
-#   depends_on:
-#     backend:
-#       condition: service_healthy
-#   container_name: mirrors-qa-manager
-#   volumes:
-#     - /var/run/docker.sock:/var/run/docker.sock
-#     - /lib/modules:/lib/modules
-#     - ./data:/data
-#     - ./id_rsa:/etc/ssh/keys/id_rsa
-#   environment:
-#     - BACKEND_API_URI=http://backend
-#     - TASK_WORKER_IMAGE=${TASK_WORKER_IMAGE:?TASK_WORKER_IMAGE not set}
-#     - WORKER_ID=${WORKER_ID:?WORKER_ID not set}
-#   command: mirrors-qa-manager --verbose ${WORKER_ID}
+  worker-manager:
+    build:
+      context: ../worker/manager
+    depends_on:
+      backend:
+        condition: service_healthy
+      task-worker:
+        condition: service_started
+    profiles:
+      - worker
+    container_name: mirrors-qa-manager
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /lib/modules:/lib/modules
+      - ./data:/data
+      - ./id_rsa:/etc/ssh/keys/id_rsa
+    environment:
+      - BACKEND_API_URI=http://backend
+      - SLEEP_DURATION=5m
+      - TASK_WORKER_IMAGE=mirrors-qa-task-worker
+    command: mirrors-qa-manager --verbose ${WORKER_ID}
+  task-worker:
+    build:
+      context: ../worker/task
+    image: mirrors-qa-task-worker
+    profiles:
+      - worker
+    command: ["mirrors-qa-task", "--help"]
 
 volumes:
   pg-data-mirrors-qa:
