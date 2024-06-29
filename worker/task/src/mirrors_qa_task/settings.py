@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any
 
 
@@ -12,8 +13,8 @@ def getenv(key: str, *, mandatory: bool = False, default: Any = None) -> Any:
 
 
 class Settings:
-    """Worker manager configuration"""
+    """Worker task configuration"""
 
-    # number of seconds between each poll
-    sleep_interval = int(getenv("SLEEP_INTERVAL", default=180))
-    debug = bool(getenv("DEBUG", default=False))
+    REQUESTS_TIMEOUT_SECONDS = int(getenv("REQUESTS_TIMEOUT_SECONDS", default=10))
+    DEBUG = bool(getenv("DEBUG", default=False))
+    WORKDIR = Path(getenv("WORKDIR", default="/data")).resolve()

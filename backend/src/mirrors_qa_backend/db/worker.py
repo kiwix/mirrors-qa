@@ -1,19 +1,17 @@
 import datetime
-from pathlib import Path
 
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.cryptography import (
     generate_public_key,
     get_public_key_fingerprint,
-    load_private_key_from_path,
     serialize_public_key,
 )
 from mirrors_qa_backend.db.country import get_countries
 from mirrors_qa_backend.db.exceptions import DuplicatePrimaryKeyError
 from mirrors_qa_backend.db.models import Worker
-from mirrors_qa_backend.exceptions import PEMPrivateKeyLoadError
 
 
 def get_worker(session: OrmSession, worker_id: str) -> Worker | None:
@@ -24,15 +22,11 @@ def create_worker(
     session: OrmSession,
     worker_id: str,
     country_codes: list[str],
-    private_key_fpath: Path,
+    private_key: RSAPrivateKey,
 ) -> Worker:
     """Creates a worker using RSA private key."""
     if get_worker(session, worker_id) is not None:
         raise DuplicatePrimaryKeyError(f"A worker with id {worker_id} already exists.")
-    try:
-        private_key = load_private_key_from_path(private_key_fpath)
-    except Exception as exc:
-        raise PEMPrivateKeyLoadError("unable to load private key from file") from exc
 
     public_key = generate_public_key(private_key)
     public_key_pkcs8 = serialize_public_key(public_key).decode(encoding="ascii")

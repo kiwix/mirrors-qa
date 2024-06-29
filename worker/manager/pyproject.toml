@@ -3,16 +3,20 @@ requires = ["hatchling", "hatch-openzim"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mirrors_qa_worker"
+name = "mirrors_qa_manager"
 requires-python = ">=3.11,<3.13"
-description = "mirrors-qa Worker"
+description = "mirrors-qa worker manager"
 readme = "README.md"
 authors = [
   { name = "Kiwix", email = "dev@kiwix.org" },
 ]
 keywords = ["mirrors"]
 dependencies = [
-    "requests == 2.32.3",
+    "requests==2.32.3",
+    "docker==7.1.0",
+    "cryptography==42.0.8",
+    "paramiko==3.4.0",
+    "humanfriendly==10.0",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
@@ -24,7 +28,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/kiwix/mirrors-qa"
+Homepage = "https://github.com/kiwix/mirrors-qa/worker/manager"
 
 [project.optional-dependencies]
 scripts = [
@@ -44,17 +48,17 @@ test = [
 dev = [
   "pre-commit==3.6.0",
   "debugpy==1.8.0",
-  "mirrors_qa_worker[scripts]",
-  "mirrors_qa_worker[lint]",
-  "mirrors_qa_worker[test]",
-  "mirrors_qa_worker[check]",
+  "mirrors_qa_manager[scripts]",
+  "mirrors_qa_manager[lint]",
+  "mirrors_qa_manager[test]",
+  "mirrors_qa_manager[check]",
 ]
 
 [project.scripts]
-mirrors-qa-worker = "mirrors_qa_worker.entrypoint:main"
+mirrors-qa-manager = "mirrors_qa_manager.entrypoint:main"
 
 [tool.hatch.version]
-path = "src/mirrors_qa_worker/__about__.py"
+path = "src/mirrors_qa_manager/__about__.py"
 
 [tool.hatch.build]
 exclude = [
@@ -62,7 +66,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mirrors_qa_worker"]
+packages = ["src/mirrors_qa_manager"]
 
 [tool.hatch.envs.default]
 features = ["dev"]
@@ -178,6 +182,8 @@ ignore = [
   "S603",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Ignore warnings on missing timezone info
+  "DTZ005", "DTZ001", "DTZ006",
 ]
 unfixable = [
   # Don't touch unused imports
@@ -185,7 +191,7 @@ unfixable = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mirrors_qa_worker"]
+known-first-party = ["mirrors_qa_manager"]
 
 [tool.ruff.lint.flake8-bugbear]
 # add exceptions to B008 for fastapi.
@@ -204,15 +210,15 @@ testpaths = ["tests"]
 pythonpath = [".", "src"]
 
 [tool.coverage.paths]
-mirrors_qa_worker = ["src/mirrors_qa_worker"]
+mirrors_qa_manager = ["src/mirrors_qa_manager"]
 tests = ["tests"]
 
 [tool.coverage.run]
-source_pkgs = ["mirrors_qa_worker"]
+source_pkgs = ["mirrors_qa_manager"]
 branch = true
 parallel = true
 omit = [
-  "src/mirrors_qa_worker/__about__.py",
+  "src/mirrors_qa_manager/__about__.py",
 ]
 
 [tool.coverage.report]

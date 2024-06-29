@@ -17,9 +17,3 @@ class PEMPublicKeyLoadError(Exception):
     """Unable to deserialize a public key from PEM encoded data"""
 
     pass
-
-
-class PEMPrivateKeyLoadError(Exception):
-    """Unable to deserialize a private key from PEM encoded data"""
-
-    pass

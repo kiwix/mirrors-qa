@@ -3,27 +3,16 @@ requires = ["hatchling", "hatch-openzim"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mirrors_qa_backend"
+name = "mirrors_qa_task"
 requires-python = ">=3.11,<3.13"
-description = "mirrors-qa Backend API"
+description = "mirrors-qa worker task"
 readme = "README.md"
 authors = [
   { name = "Kiwix", email = "dev@kiwix.org" },
 ]
 keywords = ["mirrors"]
 dependencies = [
-    "alembic==1.13.1",
-    "fastapi[all]==0.111.0",
-    "pydantic==2.7.2",
-    "SQLAlchemy==2.0.30",
-    "psycopg[binary,pool]==3.1.19",
-    "beautifulsoup4==4.12.3",
     "requests==2.32.3",
-    "pycountry==24.6.1",
-    "cryptography==42.0.8",
-    "PyJWT==2.8.0",
-    "paramiko==3.4.0",
-    "humanfriendly==10.0",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
@@ -35,10 +24,7 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/kiwix/mirrors-qa"
-
-[project.scripts]
-mirrors-qa-backend = "mirrors_qa_backend.entrypoint:main"
+Homepage = "https://github.com/kiwix/mirrors-qa/worker/task"
 
 [project.optional-dependencies]
 scripts = [
@@ -54,20 +40,21 @@ check = [
 test = [
   "pytest==8.0.0",
   "coverage==7.4.1",
-  "Faker==25.8.0",
-  "httpx==0.27.0",
 ]
 dev = [
   "pre-commit==3.6.0",
   "debugpy==1.8.0",
-  "mirrors_qa_backend[scripts]",
-  "mirrors_qa_backend[lint]",
-  "mirrors_qa_backend[test]",
-  "mirrors_qa_backend[check]",
+  "mirrors_qa_task[scripts]",
+  "mirrors_qa_task[lint]",
+  "mirrors_qa_task[test]",
+  "mirrors_qa_task[check]",
 ]
 
+[project.scripts]
+mirrors-qa-task = "mirrors_qa_task.entrypoint:main"
+
 [tool.hatch.version]
-path = "src/mirrors_qa_backend/__about__.py"
+path = "src/mirrors_qa_task/__about__.py"
 
 [tool.hatch.build]
 exclude = [
@@ -75,13 +62,14 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mirrors_qa_backend"]
+packages = ["src/mirrors_qa_task"]
 
 [tool.hatch.envs.default]
 features = ["dev"]
 
 [tool.hatch.envs.test]
 features = ["scripts", "test"]
+
 
 [tool.hatch.envs.test.scripts]
 run = "inv test --args '{args}'"
@@ -104,7 +92,7 @@ fix-ruff = "inv fix-ruff --args '{args}'"
 fixall = "inv fixall --args '{args}'"
 
 [tool.hatch.envs.check]
-features = ["scripts", "test", "check"]
+features = ["scripts", "check"]
 
 [tool.hatch.envs.check.scripts]
 pyright = "inv check-pyright --args '{args}'"
@@ -112,10 +100,10 @@ all = "inv checkall --args '{args}'"
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py310']
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 88
 src = ["src"]
 
@@ -190,8 +178,6 @@ ignore = [
   "S603",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
-  # Ignore warnings on missing timezone info
-  "DTZ005", "DTZ001", "DTZ006",
 ]
 unfixable = [
   # Don't touch unused imports
@@ -199,7 +185,7 @@ unfixable = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mirrors_qa_backend"]
+known-first-party = ["mirrors_qa_task"]
 
 [tool.ruff.lint.flake8-bugbear]
 # add exceptions to B008 for fastapi.
@@ -216,21 +202,17 @@ ban-relative-imports = "all"
 minversion = "7.3"
 testpaths = ["tests"]
 pythonpath = [".", "src"]
-addopts = "--strict-markers"
-markers = [
-    "num_tests(num=10, *, status=..., country_code=...): create num tests in the database using status and/or country_code. Random data is chosen for country_code or status if either is not set",
-]
 
 [tool.coverage.paths]
-mirrors_qa_backend = ["src/mirrors_qa_backend"]
+mirrors_qa_task = ["src/mirrors_qa_task"]
 tests = ["tests"]
 
 [tool.coverage.run]
-source_pkgs = ["mirrors_qa_backend"]
+source_pkgs = ["mirrors_qa_task"]
 branch = true
 parallel = true
 omit = [
-  "src/mirrors_qa_backend/__about__.py",
+  "src/mirrors_qa_task/__about__.py",
 ]
 
 [tool.coverage.report]

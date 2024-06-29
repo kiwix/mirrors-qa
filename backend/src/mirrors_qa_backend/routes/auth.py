@@ -49,10 +49,10 @@ def authenticate_worker(
     # verify timestamp is less than MESSAGE_VALIDITY
     if (
         datetime.datetime.now(datetime.UTC) - timestamp
-    ).total_seconds() > APISettings.MESSAGE_VALIDITY:
+    ).total_seconds() > APISettings.MESSAGE_VALIDITY_SECONDS:
         raise UnauthorizedError(
             "Difference betweeen message time and server time is "
-            f"greater than {APISettings.MESSAGE_VALIDITY}s"
+            f"greater than {APISettings.MESSAGE_VALIDITY_SECONDS}s"
         )
 
     # verify worker with worker_id exists in database
@@ -77,5 +77,5 @@ def authenticate_worker(
     return Token(
         access_token=access_token,
         token_type="bearer",
-        expires_in=datetime.timedelta(hours=APISettings.TOKEN_EXPIRY).total_seconds(),
+        expires_in=APISettings.TOKEN_EXPIRY_SECONDS,
     )
