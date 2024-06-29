@@ -199,7 +199,7 @@ class WorkerManager:
         if self.auth_credentials is None:
             self.auth_credentials = authenticate(self.private_key, self.worker_id)
 
-        if self.auth_credentials.expires_in > datetime.datetime.now():
+        if self.auth_credentials.expires_in < datetime.datetime.now():
             self.auth_credentials = authenticate(self.private_key, self.worker_id)
 
         req_headers = {
