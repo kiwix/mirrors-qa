@@ -4,6 +4,7 @@ import shutil
 import signal
 import sys
 import time
+from enum import Enum
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -12,7 +13,7 @@ from docker.models.containers import Container
 from docker.types import Mount
 
 from mirrors_qa_manager import logger
-from mirrors_qa_manager.backend import authenticate
+from mirrors_qa_manager.backend import AuthCredentials, authenticate
 from mirrors_qa_manager.backend import query_api as query_backend_api
 from mirrors_qa_manager.cryptography import load_private_key_from_path
 from mirrors_qa_manager.docker import (
@@ -23,6 +24,11 @@ from mirrors_qa_manager.docker import (
     run_container,
 )
 from mirrors_qa_manager.settings import Settings
+
+
+class WgInterfaceStatus(Enum):
+    DOWN = 0
+    UP = 1
 
 
 class WorkerManager:
@@ -46,8 +52,6 @@ class WorkerManager:
         )
         self.host_workdir = self.host_mounts[Settings.WORKDIR_FPATH]
 
-        self.wg_container_name = f"worker-{self.worker_id}-wireguard"
-        self.task_container_name = f"worker-{self.worker_id}-task"
         # Create the root directory for binding with the worker's wireguard container
         self.wg_root_dir = self.instance_dir / "wireguard"
         self.wg_root_dir.mkdir(exist_ok=True)
@@ -66,16 +70,15 @@ class WorkerManager:
             "-s",
             "https://am.i.mullvad.net/json",
         ]
+        self.wg_interface_status = WgInterfaceStatus.DOWN
         # commands for bringing down/up the interface whenever a new configuration
         # file is added
         self.wg_down_cmd = ["wg-quick", "down", self.wg_interface]
         self.wg_up_cmd = ["wg-quick", "up", self.wg_interface]
 
-        # Check in with the backend API
-        self.auth_credentials = authenticate(self.private_key, self.worker_id)
+        self.task_container_names = set()
 
-        # Start the wireguard network container
-        self.wg_container = self.start_wireguard_container(Settings.WIREGUARD_IMAGE)
+        self.auth_credentials: None | AuthCredentials = None
 
         # register exit signals
         self.register_signals()
@@ -85,7 +88,7 @@ class WorkerManager:
         return self.host_workdir / container_fpath.relative_to(Settings.WORKDIR_FPATH)
 
     def copy_wireguard_conf_file(self, country_code: str | None = None) -> Path:
-        """Copy <country_code>.conf from base directory to instance directory.
+        """Path to copied-from-base-dir <country_code>.conf file in instance  directory.
 
         If country_code is None, first file with .conf suffix is copied.
         Raises:
@@ -96,10 +99,10 @@ class WorkerManager:
         if country_code:
             conf_name = f"{country_code}.conf"
         else:
-            for fpath in self.base_dir.iterdir():
-                if fpath.is_file() and fpath.suffix == ".conf":
-                    conf_name = fpath.name
-                    break
+            try:
+                conf_name = (next(self.base_dir.glob("*.conf"))).name
+            except StopIteration:
+                pass
 
         if conf_name is None:
             if not country_code:
@@ -121,30 +124,31 @@ class WorkerManager:
         )
 
     def start_wireguard_container(self, image_name: str) -> Container:
-        logger.info("Starting wireguard container")
         # Copy the first configuration file we see during start up by passing
         # no argument. Ensures configuration files actuallly exist before starting
         # the wireguard container
         self.copy_wireguard_conf_file()
-        remove_container(
-            self.docker, self.wg_container_name, force=True, not_found_ok=True
-        )
+        #  Try and remove container if it wasn't removed before
+        self.remove_container(Settings.WIREGUARD_CONTAINER_NAME)
+        logger.info("Starting wireguard container")
         # Mount the wireguard directories using the host's fs, not this container's
         mounts = [
             Mount("/config", str(self.get_host_fpath(self.wg_root_dir)), type="bind"),
         ]
-        if wg_modules := self.host_mounts.get(Settings.WIREGUARD_KERNEL_MODULES_FPATH):
-            mounts.append(Mount("/lib/modules", str(wg_modules), type="bind"))
+        if wg_modules_fpath := self.host_mounts.get(
+            Settings.WIREGUARD_KERNEL_MODULES_FPATH
+        ):
+            mounts.append(Mount("/lib/modules", str(wg_modules_fpath), type="bind"))
 
         return run_container(
             self.docker,
             image_name,
-            name=self.wg_container_name,
+            name=Settings.WIREGUARD_CONTAINER_NAME,
             cap_add=["NET_ADMIN", "SYS_MODULE"],
             healthcheck={
                 "test": ["CMD", *self.wg_healthcheck_cmd],
-                "interval": Settings.WIREGUARD_HEALTHCHECK_INTERVAL,
-                "timeout": Settings.WIREGUARD_HEALTHCHECK_TIMEOUT,
+                "interval": Settings.WIREGUARD_HEALTHCHECK_NANOSECONDS,
+                "timeout": Settings.WIREGUARD_HEALTHCHECK_TIMEOUT_NANOSECONDS,
                 "retries": Settings.WIREGUARD_HEALTHCHECK_RETRIES,
             },
             ports={"51820/udp": None},  # Let the host assign a random port
@@ -162,23 +166,25 @@ class WorkerManager:
             },
         )
 
-    def start_task_container(self, image_name: str, output_filename: str) -> Container:
-        remove_container(
-            self.docker, self.task_container_name, force=True, not_found_ok=True
-        )
+    def start_task_container(
+        self, image_name: str, container_name: str, output_filename: str
+    ) -> Container:
+        #  Try and remove container in case the tests were not uploaded or
+        # any errors
+        self.remove_container(container_name)
         mounts = [
             Mount("/data", str(self.get_host_fpath(self.instance_dir)), type="bind")
         ]
         return run_container(
             self.docker,
             image_name,
-            name=self.task_container_name,
+            name=container_name,
             environment={
                 "DEBUG": Settings.DEBUG,
             },
             remove=True,
             mounts=mounts,
-            network_mode=f"container:{self.wg_container_name}",
+            network_mode=f"container:{Settings.WIREGUARD_CONTAINER_NAME}",
             command=["mirrors-qa-task", f"--output={output_filename}"],
         )
 
@@ -189,6 +195,9 @@ class WorkerManager:
         *,
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+
+        if self.auth_credentials is None:
+            self.auth_credentials = authenticate(self.private_key, self.worker_id)
 
         if self.auth_credentials.expires_in > datetime.datetime.now():
             self.auth_credentials = authenticate(self.private_key, self.worker_id)
@@ -215,15 +224,26 @@ class WorkerManager:
         return data["tests"]
 
     def sleep(self) -> None:
-        logger.info(f"Sleeping for {Settings.SLEEP_TIMEOUT}s")
-        time.sleep(Settings.SLEEP_TIMEOUT)
+        logger.info(f"Sleeping for {Settings.SLEEP_SECONDS}s")
+        time.sleep(Settings.SLEEP_SECONDS)
 
     def run(self) -> None:
         logger.info("Starting worker manager.")
-        try:
-            # Ensure the wireguard container is still up
-            exec_command(self.wg_container, self.wg_healthcheck_cmd)
-            while True:
+        # Start the wireguard network container
+        self.start_wireguard_container(Settings.WIREGUARD_IMAGE)
+        while True:
+            try:
+                # Ensure the wireguard container is still up
+                if (
+                    exec_command(
+                        self.docker,
+                        Settings.WIREGUARD_CONTAINER_NAME,
+                        self.wg_healthcheck_cmd,
+                    ).exit_code
+                    == 0
+                ):
+                    self.wg_interface_status = WgInterfaceStatus.UP
+
                 tests = self.fetch_tests()
                 for test in tests:
                     test_id = test["id"]
@@ -232,13 +252,13 @@ class WorkerManager:
                     try:
                         self.copy_wireguard_conf_file(country_code)
                     except FileNotFoundError:
-                        logger.warning(
+                        logger.error(
                             f"Could not find {country_code}.conf for "
                             f"{test_id}. Skipping."
                         )
                         continue
                     except Exception:
-                        logger.exception(
+                        logger.error(
                             f"error while fetching {country_code}.conf for {test_id}"
                         )
                         continue
@@ -248,8 +268,47 @@ class WorkerManager:
                     )
 
                     # After copying the file, restart the interface.
-                    exec_command(self.wg_container, self.wg_down_cmd)
-                    exec_command(self.wg_container, self.wg_up_cmd)
+                    if self.wg_interface_status == WgInterfaceStatus.UP:
+                        logger.info(
+                            f"Bringing down wireguard interface for test {test_id} "
+                            f"country_code: {country_code}"
+                        )
+                        try:
+                            exec_command(
+                                self.docker,
+                                Settings.WIREGUARD_CONTAINER_NAME,
+                                self.wg_down_cmd,
+                            )
+                        except Exception as exc:
+                            logger.error(
+                                f"error while bringing down wireguard interface  "
+                                f"for test {test_id}, country: {country_code}: {exc!s}"
+                            )
+                            continue
+                        else:
+                            self.wg_interface_status = WgInterfaceStatus.DOWN
+
+                    if self.wg_interface_status == WgInterfaceStatus.DOWN:
+                        logger.info(
+                            f"Bringing up wireguard interface for test {test_id}, "
+                            f"country_code: {country_code}"
+                        )
+                        try:
+                            exec_command(
+                                self.docker,
+                                Settings.WIREGUARD_CONTAINER_NAME,
+                                self.wg_up_cmd,
+                            )
+                        except Exception as exc:
+                            logger.error(
+                                f"error while bringing up wireguard interface "
+                                f"for test {test_id}, country: {country_code}: "
+                                f"{exc!s}"
+                            )
+                            continue
+                        else:
+                            self.wg_interface_status = WgInterfaceStatus.UP
+
                     # Perform another healthcheck to ensure traffic can go
                     # through.
                     # TODO: Use the result from the healthcheck call to
@@ -258,26 +317,53 @@ class WorkerManager:
                     # Could also be used to validate that the country config
                     # is actually for this country in case the 'host'
                     # wrongly names a config file.
-                    exec_command(self.wg_container, self.wg_healthcheck_cmd)
-
-                    logger.info(f"Processing test {test_id}")
-                    # Start container for the task
-                    output_filename = f"{test_id}.json"
-                    self.start_task_container(
-                        Settings.TASK_WORKER_IMAGE, output_filename=output_filename
+                    logger.info(
+                        "Checking if traffic can pass through wireguard interface "
+                        f"for test {test_id}, country: {country_code}"
                     )
-                    output_fpath = self.instance_dir / output_filename
+                    try:
+                        exec_command(
+                            self.docker,
+                            Settings.WIREGUARD_CONTAINER_NAME,
+                            self.wg_healthcheck_cmd,
+                        )
+                    except Exception as exc:
+                        logger.error(
+                            "error while pefroming wireguard healthcheck for "
+                            f"test {test_id}, country: {country_code}, {exc!s}"
+                        )
+                        continue
+
+                    # Start container for the task
+                    output_fpath = self.instance_dir / f"{test_id}.json"
+                    task_container_name = f"task-worker-{test_id}"
+                    logger.info(
+                        f"Starting container {task_container_name!r} for "
+                        f"processing {test_id}"
+                    )
+                    try:
+                        self.start_task_container(
+                            Settings.TASK_WORKER_IMAGE,
+                            task_container_name,
+                            output_filename=output_fpath.name,
+                        )
+                    except Exception as exc:
+                        logger.error(
+                            f"error while setting up container for test {test_id} "
+                            f"country: {country_code}: {exc!s}"
+                        )
+                        continue
+
                     results = output_fpath.read_bytes()
                     logger.info(f"Got results from test {test_id}: {results}")
                     # TODO: Merge the IP data from the healthcheck cmd and the resutls
                     # an dupload to the Backend API
                     logger.info(f"Uploading results for {test_id}")
                     output_fpath.unlink()
-                self.sleep()
-        except Exception as exc:
-            logger.exception("error while processing tasks")
-            self.exit_gracefully(exit_code=1)
-            raise exc
+            except Exception as exc:
+                logger.error(f"error while processing tasks {exc!s}")
+
+            self.sleep()
 
     def remove_container(
         self, container_name: str, *, force: bool = True, not_found_ok: bool = True
@@ -291,11 +377,8 @@ class WorkerManager:
         self.docker.ping()
         exit_code = kwargs.pop("exit_code", 0)
 
-        logger.info("Removing task container")
-        self.remove_container(self.task_container_name)
-
         logger.info("Removing wireguard container")
-        self.remove_container(self.wg_container_name)
+        self.remove_container(Settings.WIREGUARD_CONTAINER_NAME)
 
         logger.info("Closing Docker client.")
         self.docker.close()

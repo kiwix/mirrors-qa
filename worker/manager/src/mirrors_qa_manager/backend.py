@@ -18,7 +18,7 @@ class AuthCredentials:
 
 def authenticate(private_key: RSAPrivateKey, worker_id: str) -> AuthCredentials:
     logger.info("Authenticating with Backend API")
-    auth_message = generate_auth_message(private_key, worker_id)
+    auth_message = generate_auth_message(worker_id, private_key)
     data = query_api(
         "/auth/authenticate",
         "POST",
@@ -30,7 +30,8 @@ def authenticate(private_key: RSAPrivateKey, worker_id: str) -> AuthCredentials:
     )
     return AuthCredentials(
         access_token=data["access_token"],
-        expires_in=datetime.datetime.fromtimestamp(data["expires_in"]),
+        expires_in=datetime.datetime.now()
+        + datetime.timedelta(seconds=(data["expires_in"])),
     )
 
 
@@ -44,20 +45,21 @@ def query_api(
     if endpoint.startswith("/"):
         endpoint = endpoint[1:]
 
-    req_headers = {}
+    req_headers: dict[str, Any] = {}
 
     req_headers.update(  # pyright: ignore[reportUnknownMemberType]
         headers if headers else {}
     )
+    url = Settings.BACKEND_API_URI
     if endpoint:
         url = f"{Settings.BACKEND_API_URI}/{endpoint}"
-    else:
-        url = Settings.BACKEND_API_URI
+    func = {
+        "GET": requests.get,
+        "POST": requests.post,
+        "PATCH": requests.patch,
+        "DELETE": requests.delete,
+    }.get(method.upper(), requests.get)
 
-    resp: Any = getattr(  # pyright: ignore[reportCallIssue]
-        requests, method.lower(), "get"
-    )(  # pyright: ignore[reportGeneralTypeIssues]
-        url, headers=req_headers, json=payload
-    )
+    resp = func(url, headers=req_headers, json=payload)
     resp.raise_for_status()
     return resp.json()

@@ -15,9 +15,11 @@ from mirrors_qa_manager.settings import Settings
 
 
 def retry(
+    func: Callable[..., Any] | None = None,
+    *,
     retries: int = Settings.DOCKER_API_RETRIES,
-    interval: int = Settings.DOCKER_API_RETRY_SECONDS,
-):
+    interval: float = Settings.DOCKER_API_RETRY_SECONDS,
+) -> Any:
     """Retry API calls to the Docker daemon on failure."""
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -43,34 +45,36 @@ def retry(
 
         return wrapped
 
+    if func:
+        return decorator(func)
+
     return decorator
 
 
 def get_running_container_name() -> str:
     """Determine the name of this container."""
-    with open("/etc/hostname") as fh:
-        return Path(fh.read().strip()).name
+    return (Path("/etc/hostname").read_text()).strip()
 
 
 def get_container(client: DockerClient, container_name: str) -> Container:
-    return client.containers.get(
-        container_name
-    )  # pyright: ignore [reportGeneralTypeIssues,reportReturnType]
+    container = client.containers.get(container_name)
+    container.reload()
+    return container  # pyright: ignore [reportGeneralTypeIssues,reportReturnType]
 
 
-@retry()
+@retry
 def get_docker_client() -> DockerClient:
     logger.info(f"Connecting to Docker API on {Settings.DOCKER_SOCKET}")
     client = DockerClient(
         base_url=f"unix://{Settings.DOCKER_SOCKET}",
-        timeout=Settings.DOCKER_CLIENT_TIMEOUT,
+        timeout=Settings.DOCKER_CLIENT_TIMEOUT_SECONDS,
     )
     client.ping()
     logger.info("Connected to Docker API successfully")
     return client
 
 
-@retry()
+@retry
 def remove_container(
     client: DockerClient,
     container_id: str,
@@ -83,16 +87,15 @@ def remove_container(
         container = get_container(client, container_id)
     except NotFound as exc:
         if not_found_ok:
-            pass
-        else:
-            raise exc
+            return
+        raise exc
     else:
         container.remove(  # pyright: ignore [reportGeneralTypeIssues]
             v=remove_volumes, force=force
         )
 
 
-@retry()
+@retry
 def get_or_pull_image(client: DockerClient, name: str) -> Image:
     logger.debug(f"Getting image {name}")
     # task worker is always pulled to ensure we can update our code
@@ -115,12 +118,13 @@ def run_container(client: DockerClient, image_name: str, **kwargs: Any) -> Conta
 
 
 def query_host_mounts(client: DockerClient, keys: list[Path]) -> dict[Path, Path]:
-    return query_container_mounts(
-        get_container(client, get_running_container_name()), keys
-    )
+    return query_container_mounts(client, get_running_container_name(), keys)
 
 
-def query_container_mounts(container: Container, keys: list[Path]) -> dict[Path, Path]:
+def query_container_mounts(
+    client: DockerClient, container_name: str, keys: list[Path]
+) -> dict[Path, Path]:
+    container = get_container(client, container_name)
     mounts = {}
     for mount in container.attrs["Mounts"]:
         dest = Path(mount["Destination"])
@@ -130,8 +134,11 @@ def query_container_mounts(container: Container, keys: list[Path]) -> dict[Path,
     return mounts
 
 
-@retry()
-def exec_command(container: Container, cmd: list[str]) -> ExecResult:
+@retry
+def exec_command(
+    client: DockerClient, container_name: str, cmd: list[str]
+) -> ExecResult:
+    container = get_container(client, container_name)
     result = container.exec_run(cmd)
     if result.exit_code != 0:
         raise APIError(

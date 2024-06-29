@@ -19,38 +19,30 @@ class AuthMessage:
 
 
 def load_private_key_from_path(private_key_fpath: Path) -> RSAPrivateKey:
-    with private_key_fpath.open("rb") as key_file:
-        private_key = serialization.load_pem_private_key(
-            key_file.read(), password=None
-        )  # pyright: ignore[reportReturnType, reportGeneralTypeIssues]
+    private_key = serialization.load_pem_private_key(
+        private_key_fpath.read_bytes(), password=None
+    )  # pyright: ignore[reportReturnType, reportGeneralTypeIssues]
 
-        fingerprint: Any = paramiko.RSAKey(  # pyright: ignore[reportUnknownMemberType]
-            key=private_key  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
-        ).fingerprint  # pyright: ignore[reportGeneralTypeIssues]
+    fingerprint: Any = paramiko.RSAKey(  # pyright: ignore[reportUnknownMemberType]
+        key=private_key  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
+    ).fingerprint  # pyright: ignore[reportGeneralTypeIssues]
 
-        logger.info(
-            f"Private key with fingerprint {fingerprint} is available and readable"
-        )
-        return (
-            private_key  # pyright: ignore [reportGeneralTypeIssues, reportReturnType]
-        )
+    logger.info(f"Private key with fingerprint {fingerprint} is available and readable")
+    return private_key  # pyright: ignore [reportGeneralTypeIssues, reportReturnType]
 
 
-def sign_message(private_key: RSAPrivateKey, message: bytes) -> bytes:
-    return private_key.sign(
-        message,
+def get_signature(message: str, private_key: RSAPrivateKey) -> str:
+    signed_message = private_key.sign(
+        bytes(message, encoding="ascii"),
         padding.PSS(
             mgf=padding.MGF1(hashes.SHA256()),
             salt_length=padding.PSS.MAX_LENGTH,
         ),
         hashes.SHA256(),
     )
+    return base64.b64encode(signed_message).decode()
 
 
-def generate_auth_message(private_key: RSAPrivateKey, worker_id: str) -> AuthMessage:
+def generate_auth_message(worker_id: str, private_key: RSAPrivateKey) -> AuthMessage:
     body = f"{worker_id}:{datetime.datetime.now(datetime.UTC).isoformat()}"
-    signature = base64.b64encode(
-        sign_message(private_key, bytes(body, encoding="ascii"))
-    ).decode()
-
-    return AuthMessage(body=body, signature=signature)
+    return AuthMessage(body=body, signature=get_signature(body, private_key))

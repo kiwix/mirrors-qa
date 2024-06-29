@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from humanfriendly import parse_timespan
+
 
 def getenv(key: str, *, mandatory: bool = False, default: Any = None) -> Any:
     value = os.getenv(key, default=default)
@@ -16,33 +18,40 @@ class Settings:
     """Worker manager configuration"""
 
     # number of seconds between each poll to the Backend API
-    SLEEP_TIMEOUT = int(getenv("SLEEP_TIMEOUT", default=180))
+    SLEEP_SECONDS = parse_timespan(getenv("SLEEP_DURATION", default="1h"))
     DEBUG = bool(getenv("DEBUG", default=False))
     BACKEND_API_URI = getenv("BACKEND_API_URI", mandatory=True)
     # in-container directory for worker manager
     WORKDIR_FPATH = Path(getenv("WORKDIR", default="/data"))
     DOCKER_SOCKET = Path(getenv("DOCKER_SOCKET", default="/var/run/docker.sock"))
     PRIVATE_KEY_FPATH = Path(getenv("PRIVATE_KEY_FILE", default="/etc/ssh/keys/id_rsa"))
-    DOCKER_CLIENT_TIMEOUT = int(getenv("DOCKER_CLIENT_TIMEOUT", default=180))
+    DOCKER_CLIENT_TIMEOUT_SECONDS = parse_timespan(
+        getenv("DOCKER_CLIENT_TIMEOUT_DURATION", default="1m")
+    )
     # number of times to retry a call to the Docker daemon
     DOCKER_API_RETRIES = int(getenv("DOCKER_API_RETRIES", default=3))
-    DOCKER_API_RETRY_SECONDS = int(getenv("DOCKER_API_RETRY_SECONDS", default=5))
+    DOCKER_API_RETRY_SECONDS = parse_timespan(
+        getenv("DOCKER_API_RETRY_DURATION", default="5s")
+    )
     # Wireguar container settings
     WIREGUARD_IMAGE = getenv(
-        "WIREGUARD_IMAGE", default="lscr.io/linuxserver/wireguard:latest"
+        "WIREGUARD_IMAGE", default="lscr.io/linuxserver/wireguard:1.0.20210914"
     )
-    WIREGUARD_CONTAINER_NAME = getenv("WIREGUARD_CONTAINER_NAME", default="wireguard")
-    # Optional path for loading kernel modules for wireguard
+    WIREGUARD_CONTAINER_NAME = getenv(
+        "WIREGUARD_CONTAINER_NAME", default="mirrors-qa-wireguard"
+    )
+    # Optional path for loading kernel modules for wireguard container
     WIREGUARD_KERNEL_MODULES_FPATH = Path(
         getenv("WIREGUARD_KERNEL_MODULES", default="/lib/modules")
     )
-    # The Docker SDK expects healthcheck units to be in nanoseconds.Convert
-    # the provided healthcheck time parameters from seconds to nanoseconds
-    WIREGUARD_HEALTHCHECK_INTERVAL = int(
-        getenv("WIREGUARD_HEALTHCHECK_INTERVAL", default=10) * 1e9
+    # The Docker Python SDK expects healthcheck units to be in nanoseconds.
+    # https://docker-py.readthedocs.io/en/stable/containers.html
+    # Convert the provided healthcheck time parameters from seconds to nanoseconds
+    WIREGUARD_HEALTHCHECK_NANOSECONDS = int(
+        getenv("WIREGUARD_HEALTHCHECK_INTERVAL_SECONDS", default=10) * 1e9
     )
-    WIREGUARD_HEALTHCHECK_TIMEOUT = int(
-        getenv("WIREGUARD_HEALTHCHECK_TIMEOUT", default=5) * 1e9
+    WIREGUARD_HEALTHCHECK_TIMEOUT_NANOSECONDS = int(
+        getenv("WIREGUARD_HEALTHCHECK_TIMEOUT_SECONDS", default=5) * 1e9
     )
     WIREGUARD_HEALTHCHECK_RETRIES = int(
         getenv("WIREGUARD_HEALTHCHECK_RETRIES", default=3)
