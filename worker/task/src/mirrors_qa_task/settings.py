@@ -15,6 +15,6 @@ def getenv(key: str, *, mandatory: bool = False, default: Any = None) -> Any:
 class Settings:
     """Worker task configuration"""
 
-    REQUESTS_TIMEOUT_SECONDS = int(getenv("REQUESTS_TIMEOUT", default=60))
+    REQUESTS_TIMEOUT_SECONDS = int(getenv("REQUESTS_TIMEOUT_SECONDS", default=10))
     DEBUG = bool(getenv("DEBUG", default=False))
     WORKDIR = Path(getenv("WORKDIR", default="/data")).resolve()
