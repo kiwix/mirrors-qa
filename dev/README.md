@@ -13,9 +13,11 @@ Run `mirrors-qa-backend --help` in the container to see the sub-commands and opt
 This container is a PostgreSQL DB. DB data is kept in a volume, persistent across containers restarts.
 
 ### scheduler
+
 This container creates test entries for idle workers (i.e workers who have not been seen in the last `IDLE_WORKER_SECONDS` environment variable)
 
 ### task-worker
+
 This container records the speed results for a particular test.
 
 ### worker-manager
@@ -73,10 +75,12 @@ docker compose --profile worker up --build
 
 ## Environment variables
 
-**NOTE:** All environment variables ending with a `_DURATION` suffix accept values that would be valid for [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/api.html#humanfriendly.parse_timespan)
+**NOTE:** All environment variables with a `_DURATION` suffix accept values that would be valid for [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/api.html#humanfriendly.parse_timespan)
 
 ### backend
+
 The `backend` code houses the `scheduler` and the `RESTful API`. The following environment variables are shared by both services:
+
 - `POSTGRES_URI`: PostgreSQL DSN string
 - `REQUESTS_TIMEOUT_DURATION`: how long before a request to an external API times out
 - `PAGE_SIZE` - number of rows to return from a request which returns a list of items
@@ -84,16 +88,19 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `EXCLUDED_MIRRORS`: hostname of mirror URLs to exclude seperated by commas.
 
 ### REST API
+
 - `JWT_SECRET`
 - `MESSAGE_VALIDITY_DURATION`: how long should the authentication message be considered as valid from when it was signed
 - `TOKEN_EXPIRY_DURATION`: how long access tokens should live
 
 ### scheduler
+
 - `SCHEDULER_SLEEP_DURATION`: how long the scheduler should sleep after creating tests for idle workers
 - `IDLE_WORKER_DURATION`: mark a worker as idle if it hasn't been seen within duration
 - `EXPIRE_TEST_DURATION`: expire tests whose results are still pending after duration
 
 ### worker-manager
+
 - `SLEEP_DURATION`: how long the manager should sleep before polling the REST API
 - `BACKEND_API_URI`
 - `DOCKER_SOCKET`
@@ -109,4 +116,5 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `TASK_WORKER_IMAGE`
 
 ## task-worker
+
 - `REQUESTS_TIMEOUT_SECONDS`: how many seconds beore a request times out
