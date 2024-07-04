@@ -14,8 +14,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - mirrors-qa-network
   backend:
     depends_on:
       postgresdb:
@@ -27,19 +25,14 @@ services:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
       JWT_SECRET: DH8kSxcflUVfNRdkEiJJCn2dOOKI3qfw
       DEBUG: true
-    networks:
-      - mirrors-qa-network
+      REQUESTS_TIMEOUT_DURATION: 30s
     ports:
       - 8000:80
-  worker_manager:
-    build:
-      context: ../worker
-      dockerfile: manager.Dockerfile
-    container_name: mirrors-qa-worker-manager
-    environment:
-      BACKEND_ROOT_API: http://backend
-      SLEEP_INTERVAL: 180
-      DEBUG: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/tests?page_size=1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
   scheduler:
     depends_on:
       postgresdb:
@@ -49,14 +42,39 @@ services:
     container_name: mirrors-qa-scheduler
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
+      IDLE_WORKER_DURATION: 1d
+      SCHEDULER_SLEEP_DURATION: 1m
+      EXPIRE_TEST_DURATION: 2m
       DEBUG: true
-    command: mirrors-qa-scheduler
-    networks:
-      - mirrors-qa-network
+    command: mirrors-qa-backend scheduler
+  worker-manager:
+    build:
+      context: ../worker/manager
+    depends_on:
+      backend:
+        condition: service_healthy
+      task-worker:
+        condition: service_started
+    profiles:
+      - worker
+    container_name: mirrors-qa-manager
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /lib/modules:/lib/modules
+      - ./data:/data
+      - ./id_rsa:/etc/ssh/keys/id_rsa
+    environment:
+      - BACKEND_API_URI=http://backend
+      - SLEEP_DURATION=5m
+      - TASK_WORKER_IMAGE=mirrors-qa-task-worker
+    command: mirrors-qa-manager --verbose ${WORKER_ID}
+  task-worker:
+    build:
+      context: ../worker/task
+    image: mirrors-qa-task-worker
+    profiles:
+      - worker
+    command: ["mirrors-qa-task", "--help"]
 
 volumes:
   pg-data-mirrors-qa:
-
-networks:
-  mirrors-qa-network:
-    driver: bridge

@@ -9,13 +9,17 @@ from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 
-def main():
+def main(
+    sleep_seconds: float = SchedulerSettings.SLEEP_SECONDS,
+    expire_tests_since: float = SchedulerSettings.EXPIRE_TEST_SECONDS,
+    workers_since: float = SchedulerSettings.IDLE_WORKER_SECONDS,
+):
     while True:
         with Session.begin() as session:
             # expire tests whose results have not been reported
             expired_tests = expire_tests(
                 session,
-                interval=datetime.timedelta(hours=SchedulerSettings.EXPIRE_TEST_HOURS),
+                interval=datetime.timedelta(seconds=expire_tests_since),
             )
             for expired_test in expired_tests:
                 logger.info(
@@ -26,7 +30,9 @@ def main():
 
             idle_workers = get_idle_workers(
                 session,
-                interval=datetime.timedelta(hours=SchedulerSettings.IDLE_WORKER_HOURS),
+                interval=datetime.timedelta(
+                    seconds=workers_since,
+                ),
             )
             if not idle_workers:
                 logger.info("No idle workers found.")
@@ -69,9 +75,5 @@ def main():
                         f"{idle_worker.id} in country {country.name}"
                     )
 
-        sleep_interval = datetime.timedelta(
-            hours=SchedulerSettings.SCHEDULER_SLEEP_HOURS
-        ).total_seconds()
-
-        logger.info(f"Sleeping for {sleep_interval} seconds.")
-        time.sleep(sleep_interval)
+        logger.info(f"Sleeping for {sleep_seconds} seconds.")
+        time.sleep(sleep_seconds)
