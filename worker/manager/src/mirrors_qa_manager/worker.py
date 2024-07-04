@@ -169,9 +169,6 @@ class WorkerManager:
     def start_task_container(
         self, image_name: str, container_name: str, output_filename: str
     ) -> Container:
-        #  Try and remove container in case the tests were not uploaded or
-        # any errors
-        self.remove_container(container_name)
         mounts = [
             Mount("/data", str(self.get_host_fpath(self.instance_dir)), type="bind")
         ]
@@ -182,7 +179,6 @@ class WorkerManager:
             environment={
                 "DEBUG": Settings.DEBUG,
             },
-            remove=True,
             mounts=mounts,
             network_mode=f"container:{Settings.WIREGUARD_CONTAINER_NAME}",
             command=["mirrors-qa-task", f"--output={output_filename}"],
@@ -335,13 +331,26 @@ class WorkerManager:
                         continue
 
                     # Start container for the task
-                    output_fpath = self.instance_dir / f"{test_id}.json"
                     task_container_name = f"task-worker-{test_id}"
+                    # It is possible that a container with the existing name already
+                    # exists, perhaps, due to the task failing and cleanup did not
+                    # complete properly.
+                    try:
+                        self.remove_container(task_container_name)
+                    except Exception as exc:
+                        logger.error(
+                            "error while removing task container "
+                            f"{task_container_name}, {exc!s}"
+                        )
+                        continue
+
                     logger.info(
                         f"Starting container {task_container_name!r} for "
                         f"processing {test_id}"
                     )
+                    output_fpath = self.instance_dir / f"{test_id}.json"
                     try:
+                        self.task_container_names.add(task_container_name)
                         self.start_task_container(
                             Settings.TASK_WORKER_IMAGE,
                             task_container_name,
@@ -353,6 +362,16 @@ class WorkerManager:
                             f"country: {country_code}: {exc!s}"
                         )
                         continue
+
+                    try:
+                        self.remove_container(task_container_name)
+                    except Exception as exc:
+                        logger.error(
+                            "error while removing task container "
+                            f"{task_container_name}, {exc!s}"
+                        )
+                    else:
+                        self.task_container_names.remove(task_container_name)
 
                     results = output_fpath.read_bytes()
                     logger.info(f"Got results from test {test_id}: {results}")
@@ -379,6 +398,10 @@ class WorkerManager:
 
         logger.info("Removing wireguard container")
         self.remove_container(Settings.WIREGUARD_CONTAINER_NAME)
+
+        # Remove any task containers that were not removed
+        for container_name in self.task_container_names:
+            self.remove_container(container_name)
 
         logger.info("Closing Docker client.")
         self.docker.close()
