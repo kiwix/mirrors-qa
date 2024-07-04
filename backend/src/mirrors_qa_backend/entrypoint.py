@@ -52,6 +52,7 @@ def main():
         "--workers-since",
         help="Create tests for workers last seen in duration.",
         type=parse_timespan,
+        dest="workers_since",
         default=SchedulerSettings.IDLE_WORKER_SECONDS,
         metavar="duration",
     )
@@ -59,6 +60,7 @@ def main():
         "--expire-tests-since",
         help="Expire tests whose results have not arrived since duration",
         type=parse_timespan,
+        dest="expire_tests_since",
         default=SchedulerSettings.EXPIRE_TEST_SECONDS,
         metavar="duration",
     )
@@ -73,6 +75,7 @@ def main():
         "--countries",
         help="Comma-seperated country codes each in ISO 3166-1 alpha-2 format.",
         type=lambda countries: countries.split(","),
+        dest="countries",
         metavar="codes",
     )
     create_worker_cli.add_argument(
