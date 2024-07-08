@@ -17,6 +17,7 @@ dependencies = [
     "cryptography==42.0.8",
     "paramiko==3.4.0",
     "humanfriendly==10.0",
+    "pycountry==24.6.1",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [

@@ -57,3 +57,7 @@ class Settings:
         getenv("WIREGUARD_HEALTHCHECK_RETRIES", default=3)
     )
     TASK_WORKER_IMAGE = getenv("TASK_WORKER_IMAGE", mandatory=True)
+    TEST_FILE_URL = getenv(
+        "TEST_FILE_URL",
+        default="https://download.kiwix.org/zim/wikipedia/speedtest_en_blob_2024-05.zim",
+    )

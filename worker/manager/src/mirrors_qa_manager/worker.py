@@ -1,5 +1,6 @@
 # pyright: strict, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportOptionalSubscript=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 import datetime
+import json
 import shutil
 import signal
 import sys
@@ -7,8 +8,9 @@ import time
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
+import pycountry
 from docker.models.containers import Container
 from docker.types import Mount
 
@@ -77,6 +79,8 @@ class WorkerManager:
         self.wg_up_cmd = ["wg-quick", "up", self.wg_interface]
 
         self.task_container_names = set()
+        # location of the test file on the from the mirror's root
+        self.test_file_path: str = urlsplit(Settings.TEST_FILE_URL).path
 
         self.auth_credentials: None | AuthCredentials = None
 
@@ -167,7 +171,11 @@ class WorkerManager:
         )
 
     def start_task_container(
-        self, image_name: str, container_name: str, output_filename: str
+        self,
+        image_name: str,
+        container_name: str,
+        output_filename: str,
+        test_file_url: str,
     ) -> Container:
         mounts = [
             Mount("/data", str(self.get_host_fpath(self.instance_dir)), type="bind")
@@ -178,6 +186,7 @@ class WorkerManager:
             name=container_name,
             environment={
                 "DEBUG": Settings.DEBUG,
+                "TEST_FILE_URL": test_file_url,
             },
             mounts=mounts,
             network_mode=f"container:{Settings.WIREGUARD_CONTAINER_NAME}",
@@ -191,15 +200,14 @@ class WorkerManager:
         *,
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-
         if self.auth_credentials is None:
             self.auth_credentials = authenticate(self.private_key, self.worker_id)
 
-        if self.auth_credentials.expires_in < datetime.datetime.now():
+        if self.auth_credentials.expires_in <= datetime.datetime.now():
             self.auth_credentials = authenticate(self.private_key, self.worker_id)
 
         req_headers = {
-            "Authorization": f"Bearer: {self.auth_credentials.access_token}",
+            "Authorization": f"Bearer {self.auth_credentials.access_token}",
         }
         return query_backend_api(
             endpoint,
@@ -207,6 +215,16 @@ class WorkerManager:
             headers=req_headers,
             payload=payload,
         )
+
+    def merge_data(
+        self, *, ip_data: dict[str, Any], metrics_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            **metrics_data,
+            "ip_address": ip_data["ip"],
+            "city": ip_data["city"],
+            "isp": ip_data["organization"],
+        }
 
     def fetch_tests(self) -> list[dict[str, Any]]:
         logger.debug("Fetching tasks from backend API")
@@ -222,6 +240,10 @@ class WorkerManager:
     def sleep(self) -> None:
         logger.info(f"Sleeping for {Settings.SLEEP_SECONDS}s")
         time.sleep(Settings.SLEEP_SECONDS)
+
+    def get_country_code(self, country_name: str) -> str:
+        country: Any = pycountry.countries.search_fuzzy(country_name)[0]
+        return country.alpha_2.lower()
 
     def run(self) -> None:
         logger.info("Starting worker manager.")
@@ -250,7 +272,7 @@ class WorkerManager:
                     except FileNotFoundError:
                         logger.error(
                             f"Could not find {country_code}.conf for "
-                            f"{test_id}. Skipping."
+                            f"test {test_id}. Skipping test."
                         )
                         continue
                     except Exception:
@@ -307,18 +329,12 @@ class WorkerManager:
 
                     # Perform another healthcheck to ensure traffic can go
                     # through.
-                    # TODO: Use the result from the healthcheck call to
-                    # populate the IP-related data as the task container
-                    # doesn't know anything about its network.
-                    # Could also be used to validate that the country config
-                    # is actually for this country in case the 'host'
-                    # wrongly names a config file.
                     logger.info(
                         "Checking if traffic can pass through wireguard interface "
                         f"for test {test_id}, country: {country_code}"
                     )
                     try:
-                        exec_command(
+                        healthcheck_result = exec_command(
                             self.docker,
                             Settings.WIREGUARD_CONTAINER_NAME,
                             self.wg_healthcheck_cmd,
@@ -327,6 +343,20 @@ class WorkerManager:
                         logger.error(
                             "error while pefroming wireguard healthcheck for "
                             f"test {test_id}, country: {country_code}, {exc!s}"
+                        )
+                        continue
+
+                    # Ensure the country that this IP belongs to is the same as the
+                    # requested country code.
+                    ip_data = json.loads(healthcheck_result.output.decode("utf-8"))
+                    ip_country_code = self.get_country_code(ip_data["country"])
+
+                    if ip_country_code != country_code:
+                        logger.warning(
+                            "Test expects configuration file for "
+                            f"{country_code}, got {ip_country_code} from host. "
+                            f"Skipping test {test_id} due to wrong "
+                            "configuration file."
                         )
                         continue
 
@@ -346,15 +376,21 @@ class WorkerManager:
 
                     logger.info(
                         f"Starting container {task_container_name!r} for "
-                        f"processing {test_id}"
+                        f"processing test {test_id}"
                     )
                     output_fpath = self.instance_dir / f"{test_id}.json"
+                    test_file_url = (
+                        test["mirror_url"].rstrip("/")
+                        + "/"
+                        + self.test_file_path.lstrip("/")
+                    )
                     try:
                         self.task_container_names.add(task_container_name)
                         self.start_task_container(
                             Settings.TASK_WORKER_IMAGE,
                             task_container_name,
                             output_filename=output_fpath.name,
+                            test_file_url=test_file_url,
                         )
                     except Exception as exc:
                         logger.error(
@@ -373,12 +409,27 @@ class WorkerManager:
                     else:
                         self.task_container_names.remove(task_container_name)
 
-                    results = output_fpath.read_bytes()
-                    logger.info(f"Got results from test {test_id}: {results}")
-                    # TODO: Merge the IP data from the healthcheck cmd and the resutls
-                    # an dupload to the Backend API
-                    logger.info(f"Uploading results for {test_id}")
-                    output_fpath.unlink()
+                    results = output_fpath.read_text()
+                    logger.info(
+                        f"Successfully retrieved metrics results for test {test_id}"
+                    )
+                    payload = self.merge_data(
+                        ip_data=ip_data,
+                        metrics_data=json.loads(results),
+                    )
+                    logger.info(f"Uploading results for {test_id} to Backend API")
+                    try:
+                        self.query_api(
+                            f"/tests/{test_id}", method="patch", payload=payload
+                        )
+                    except Exception as exc:
+                        logger.error(
+                            f"error while uploading results to Backend API: {exc!s}"
+                        )
+                        continue
+                    finally:
+                        output_fpath.unlink()
+                    logger.info(f"Uploaded results for {test_id} to Backend API")
             except Exception as exc:
                 logger.error(f"error while processing tasks {exc!s}")
 
