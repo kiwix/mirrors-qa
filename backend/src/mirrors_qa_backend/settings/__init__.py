@@ -32,3 +32,7 @@ class Settings:
     MIRRORS_EXCLUSION_LIST = getenv(
         "EXCLUDED_MIRRORS", default="mirror.isoc.org.il"
     ).split(",")
+
+    TEST_LOCATIONS_URL = getenv(
+        "TEST_LOCATIONS_URL", default="https://api.mullvad.net/app/v1/relays"
+    )

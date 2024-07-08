@@ -64,8 +64,6 @@ class Country(Base):
         cascade="all, delete-orphan",
     )
 
-    tests: Mapped[list[Test]] = relationship(back_populates="country", init=False)
-
     __table_args__ = (UniqueConstraint("name", "code"),)
 
 
@@ -91,6 +89,10 @@ class Mirror(Base):
         init=False,
     )
     country: Mapped[Country] = relationship(back_populates="mirrors", init=False)
+
+    tests: Mapped[list[Test]] = relationship(back_populates="mirror", init=False)
+
+    __table_args__ = (UniqueConstraint("base_url"),)
 
 
 class Worker(Base):
@@ -128,20 +130,21 @@ class Test(Base):
         ),
         default=StatusEnum.PENDING,
     )
+    # Base URL of the mirror which the test will be run
+    mirror_url: Mapped[str | None] = mapped_column(
+        ForeignKey("mirror.base_url"), init=False, default=None
+    )
     error: Mapped[str | None] = mapped_column(default=None)
     isp: Mapped[str | None] = mapped_column(default=None)
     ip_address: Mapped[IPv4Address | None] = mapped_column(default=None)
     # autonomous system based on IP
     asn: Mapped[str | None] = mapped_column(default=None)
-    country_code: Mapped[str | None] = mapped_column(
-        ForeignKey("country.code"),
-        init=False,
-        default=None,
-    )
-    location: Mapped[str | None] = mapped_column(default=None)  # city based on IP
-    latency: Mapped[int | None] = mapped_column(default=None)  # milliseconds
+    # country to run the test from (not necessarily the mirror country)
+    country_code: Mapped[str | None] = mapped_column(default=None)
+    city: Mapped[str | None] = mapped_column(default=None)  # city based on IP
+    latency: Mapped[float | None] = mapped_column(default=None)  # milliseconds
     download_size: Mapped[int | None] = mapped_column(default=None)  # bytes
-    duration: Mapped[int | None] = mapped_column(default=None)  # seconds
+    duration: Mapped[float | None] = mapped_column(default=None)  # seconds
     speed: Mapped[float | None] = mapped_column(default=None)  # bytes per second
     worker_id: Mapped[str | None] = mapped_column(
         ForeignKey("worker.id"), init=False, default=None
@@ -149,4 +152,12 @@ class Test(Base):
 
     worker: Mapped[Worker | None] = relationship(back_populates="tests", init=False)
 
-    country: Mapped[Country | None] = relationship(back_populates="tests", init=False)
+    mirror: Mapped[Mirror | None] = relationship(back_populates="tests", init=False)
+
+
+class Location(Base):
+    __tablename__ = "location"
+    code: Mapped[str] = mapped_column(
+        primary_key=True
+    )  # two-letter country codes as defined in ISO 3166-1
+    name: Mapped[str]  # full name of the country (in English)

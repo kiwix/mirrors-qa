@@ -1,12 +1,13 @@
 from typing import Any
 from urllib.parse import urlsplit
 
-import pycountry
 import requests
 from bs4 import BeautifulSoup, NavigableString
 from bs4.element import Tag
+from pycountry.db import Country
 
 from mirrors_qa_backend import logger, schemas
+from mirrors_qa_backend.country import get_country
 from mirrors_qa_backend.exceptions import MirrorsExtractError, MirrorsRequestError
 from mirrors_qa_backend.settings import Settings
 
@@ -56,8 +57,8 @@ def get_current_mirrors() -> list[schemas.Mirror]:
             continue
         country_name = row.find("img").next_sibling.text.strip()
         try:
-            country: Any = pycountry.countries.search_fuzzy(country_name)[0]
-        except LookupError:
+            country: Country = get_country(country_name)
+        except ValueError:
             logger.error(f"Could not get information for country: {country_name}")
             continue
         else:

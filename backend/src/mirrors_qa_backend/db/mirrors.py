@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from mirrors_qa_backend import logger, schemas
 from mirrors_qa_backend.db import models
-from mirrors_qa_backend.db.exceptions import EmptyMirrorsError
+from mirrors_qa_backend.db.exceptions import EmptyMirrorsError, RecordDoesNotExistError
 
 
 @dataclass
@@ -111,3 +111,12 @@ def create_or_update_mirror_status(
             session.add(db_mirror)
             result.nb_mirrors_added += 1
     return result
+
+
+def get_mirror(session: OrmSession, mirror_id: str) -> models.Mirror:
+    mirror = session.scalars(
+        select(models.Mirror).where(models.Mirror.id == mirror_id)
+    ).one_or_none()
+    if mirror is None:
+        raise RecordDoesNotExistError(f"Mirror with id: {mirror_id} does not exist.")
+    return mirror

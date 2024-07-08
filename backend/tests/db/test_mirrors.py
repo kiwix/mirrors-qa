@@ -9,53 +9,6 @@ from mirrors_qa_backend.db.mirrors import create_mirrors, create_or_update_mirro
 from mirrors_qa_backend.serializer import serialize_mirror
 
 
-@pytest.fixture(scope="session")
-def db_mirror() -> models.Mirror:
-    mirror = models.Mirror(
-        id="mirror-sites-in.mblibrary.info",
-        base_url="https://mirror-sites-in.mblibrary.info/mirror-sites/download.kiwix.org/",
-        enabled=True,
-        region=None,
-        asn=None,
-        score=None,
-        latitude=None,
-        longitude=None,
-        country_only=None,
-        region_only=None,
-        as_only=None,
-        other_countries=None,
-    )
-    mirror.country = models.Country(code="in", name="India")
-    return mirror
-
-
-@pytest.fixture(scope="session")
-def schema_mirror(db_mirror: models.Mirror) -> schemas.Mirror:
-    return serialize_mirror(db_mirror)
-
-
-@pytest.fixture(scope="session")
-def new_schema_mirror() -> schemas.Mirror:
-    return schemas.Mirror(
-        id="mirrors.dotsrc.org",
-        base_url="https://mirrors.dotsrc.org/kiwix/",
-        enabled=True,
-        region=None,
-        asn=None,
-        score=None,
-        latitude=None,
-        longitude=None,
-        country_only=None,
-        region_only=None,
-        as_only=None,
-        other_countries=None,
-        country=schemas.Country(
-            code="dk",
-            name="Denmark",
-        ),
-    )
-
-
 def test_db_empty(dbsession: OrmSession):
     assert count_from_stmt(dbsession, select(models.Country)) == 0
 
@@ -76,10 +29,8 @@ def test_raises_empty_mirrors_error(dbsession: OrmSession):
 def test_register_new_mirror(
     dbsession: OrmSession,
     schema_mirror: schemas.Mirror,
-    db_mirror: models.Mirror,
     new_schema_mirror: schemas.Mirror,
 ):
-    dbsession.add(db_mirror)
     result = create_or_update_mirror_status(
         dbsession, [schema_mirror, new_schema_mirror]
     )
@@ -88,26 +39,19 @@ def test_register_new_mirror(
 
 def test_disable_old_mirror(
     dbsession: OrmSession,
-    db_mirror: models.Mirror,
+    db_mirror: models.Mirror,  # noqa: ARG001 [pytest fixture that saves a mirror]
     new_schema_mirror: schemas.Mirror,
 ):
-    dbsession.add(db_mirror)
     result = create_or_update_mirror_status(dbsession, [new_schema_mirror])
     assert result.nb_mirrors_disabled == 1
 
 
-def test_no_mirrors_disabled(
-    dbsession: OrmSession, db_mirror: models.Mirror, schema_mirror: schemas.Mirror
-):
-    dbsession.add(db_mirror)
+def test_no_mirrors_disabled(dbsession: OrmSession, schema_mirror: schemas.Mirror):
     result = create_or_update_mirror_status(dbsession, [schema_mirror])
     assert result.nb_mirrors_disabled == 0
 
 
-def test_no_mirrors_added(
-    dbsession: OrmSession, db_mirror: models.Mirror, schema_mirror: schemas.Mirror
-):
-    dbsession.add(db_mirror)
+def test_no_mirrors_added(dbsession: OrmSession, schema_mirror: schemas.Mirror):
     result = create_or_update_mirror_status(dbsession, [schema_mirror])
     assert result.nb_mirrors_added == 0
 

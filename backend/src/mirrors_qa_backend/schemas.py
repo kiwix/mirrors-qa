@@ -39,11 +39,10 @@ class UpdateTestModel(BaseModel):
     isp: str | None = None
     ip_address: IPv4Address | None = None
     asn: str | None = None
-    country_code: str | None = None
-    location: str | None = None
-    latency: int | None = None
+    city: str | None = None
+    latency: float | None = None
     download_size: int | None = None
-    duration: int | None = None
+    duration: float | None = None
     speed: float | None = None
     status: StatusEnum = StatusEnum.PENDING
 
@@ -51,6 +50,8 @@ class UpdateTestModel(BaseModel):
 class Test(UpdateTestModel):
     id: UUID4
     requested_on: datetime.datetime
+    country_code: str | None = None  # country to run the test from
+    mirror_url: str | None  # base url of the mirror to run the test
 
 
 class Paginator(BaseModel):

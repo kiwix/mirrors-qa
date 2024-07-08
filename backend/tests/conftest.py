@@ -4,7 +4,6 @@ from collections.abc import Generator
 from typing import Any
 
 import paramiko
-import pycountry
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -13,11 +12,12 @@ from faker import Faker
 from faker.providers import DynamicProvider
 from sqlalchemy.orm import Session as OrmSession
 
+from mirrors_qa_backend import schemas
 from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import Session
-from mirrors_qa_backend.db.country import get_country_or_none
-from mirrors_qa_backend.db.models import Base, Country, Test, Worker
+from mirrors_qa_backend.db.models import Base, Country, Mirror, Test, Worker
 from mirrors_qa_backend.enums import StatusEnum
+from mirrors_qa_backend.serializer import serialize_mirror
 
 
 @pytest.fixture
@@ -61,7 +61,10 @@ def data_gen(faker: Faker) -> Faker:
 
 @pytest.fixture
 def tests(
-    dbsession: OrmSession, data_gen: Faker, worker: Worker, request: Any
+    dbsession: OrmSession,
+    data_gen: Faker,
+    worker: Worker,
+    request: Any,
 ) -> list[Test]:
     """Adds tests to the database using the num_test mark."""
     mark = request.node.get_closest_marker("num_tests")
@@ -78,18 +81,7 @@ def tests(
         selected_country_code = (
             country_code if country_code else data_gen.test_country_code()
         )
-        if country := get_country_or_none(dbsession, selected_country_code):
-            test.country = country
-        else:
-            country = Country(
-                code=selected_country_code.lower(),
-                name=pycountry.countries.get(
-                    alpha_2=selected_country_code
-                ).name,  # pyright: ignore [reportOptionalMemberAccess]
-            )
-            dbsession.add(country)
-            test.country = country
-
+        test.country_code = selected_country_code
         test.worker = worker
         dbsession.add(test)
 
@@ -143,3 +135,51 @@ def x_sshauth_signature(private_key: RSAPrivateKey, auth_message: str) -> str:
     """Sign a message using RSA private key and encode it in base64"""
     signature = sign_message(private_key, bytes(auth_message, encoding="ascii"))
     return base64.b64encode(signature).decode()
+
+
+@pytest.fixture
+def db_mirror(dbsession: OrmSession) -> Mirror:
+    mirror = Mirror(
+        id="mirror-sites-in.mblibrary.info",
+        base_url="https://mirror-sites-in.mblibrary.info/mirror-sites/download.kiwix.org/",
+        enabled=True,
+        region=None,
+        asn=None,
+        score=None,
+        latitude=None,
+        longitude=None,
+        country_only=None,
+        region_only=None,
+        as_only=None,
+        other_countries=None,
+    )
+    mirror.country = Country(code="in", name="India")
+    dbsession.add(mirror)
+    return mirror
+
+
+@pytest.fixture
+def schema_mirror(db_mirror: Mirror) -> schemas.Mirror:
+    return serialize_mirror(db_mirror)
+
+
+@pytest.fixture
+def new_schema_mirror() -> schemas.Mirror:
+    return schemas.Mirror(
+        id="mirrors.dotsrc.org",
+        base_url="https://mirrors.dotsrc.org/kiwix/",
+        enabled=True,
+        region=None,
+        asn=None,
+        score=None,
+        latitude=None,
+        longitude=None,
+        country_only=None,
+        region_only=None,
+        as_only=None,
+        other_countries=None,
+        country=schemas.Country(
+            code="dk",
+            name="Denmark",
+        ),
+    )

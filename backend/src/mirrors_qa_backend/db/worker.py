@@ -10,12 +10,21 @@ from mirrors_qa_backend.cryptography import (
     serialize_public_key,
 )
 from mirrors_qa_backend.db.country import get_countries
-from mirrors_qa_backend.db.exceptions import DuplicatePrimaryKeyError
+from mirrors_qa_backend.db.exceptions import (
+    DuplicatePrimaryKeyError,
+    RecordDoesNotExistError,
+)
 from mirrors_qa_backend.db.models import Worker
 
 
-def get_worker(session: OrmSession, worker_id: str) -> Worker | None:
+def get_worker_or_none(session: OrmSession, worker_id: str) -> Worker | None:
     return session.scalars(select(Worker).where(Worker.id == worker_id)).one_or_none()
+
+
+def get_worker(session: OrmSession, worker_id: str) -> Worker:
+    if worker := get_worker_or_none(session, worker_id):
+        return worker
+    raise RecordDoesNotExistError(f"Worker with id: {worker_id} does not exist.")
 
 
 def create_worker(
@@ -25,7 +34,7 @@ def create_worker(
     private_key: RSAPrivateKey,
 ) -> Worker:
     """Creates a worker using RSA private key."""
-    if get_worker(session, worker_id) is not None:
+    if get_worker_or_none(session, worker_id) is not None:
         raise DuplicatePrimaryKeyError(f"A worker with id {worker_id} already exists.")
 
     public_key = generate_public_key(private_key)

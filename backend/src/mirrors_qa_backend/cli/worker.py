@@ -1,5 +1,3 @@
-import sys
-
 import pycountry
 from cryptography.hazmat.primitives import serialization
 
@@ -12,31 +10,23 @@ def create_worker(worker_id: str, private_key_data: bytes, country_codes: list[s
     # Ensure all the countries are valid country codes
     for country_code in country_codes:
         if len(country_code) != 2:  # noqa: PLR2004
-            logger.info(f"Country code '{country_code}' must be two characters long")
-            sys.exit(1)
+            raise ValueError(
+                f"Country code '{country_code}' must be two characters long"
+            )
 
         if not pycountry.countries.get(alpha_2=country_code):
-            logger.info(f"'{country_code}' is not valid country code")
-            sys.exit(1)
+            raise ValueError(f"'{country_code}' is not valid country code")
 
-    try:
-        private_key = serialization.load_pem_private_key(
-            private_key_data, password=None
-        )  # pyright: ignore[reportReturnType]
-    except Exception as exc:
-        logger.info(f"Unable to load private key: {exc}")
-        sys.exit(1)
+    private_key = serialization.load_pem_private_key(
+        private_key_data, password=None
+    )  # pyright: ignore[reportReturnType]
 
-    try:
-        with Session.begin() as session:
-            create_db_worker(
-                session,
-                worker_id,
-                country_codes,
-                private_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
-            )
-    except Exception as exc:
-        logger.info(f"error while creating worker: {exc}")
-        sys.exit(1)
+    with Session.begin() as session:
+        create_db_worker(
+            session,
+            worker_id,
+            country_codes,
+            private_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
+        )
 
     logger.info(f"Created worker {worker_id} successfully")

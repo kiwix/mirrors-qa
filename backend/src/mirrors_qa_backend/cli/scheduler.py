@@ -3,9 +3,11 @@ import time
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
+from mirrors_qa_backend.db.location import get_all_locations
 from mirrors_qa_backend.db.tests import create_test, expire_tests, list_tests
 from mirrors_qa_backend.db.worker import get_idle_workers
 from mirrors_qa_backend.enums import StatusEnum
+from mirrors_qa_backend.locations import update_locations
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 
@@ -16,6 +18,13 @@ def main(
 ):
     while True:
         with Session.begin() as session:
+            # Ensure there are test locations available. Create if none exist
+            test_locations = get_all_locations(session)
+            if not test_locations:
+                test_locations = update_locations(session)
+
+            logger.info(f"Found {len(test_locations)} test locations in DB.")
+
             # expire tests whose results have not been reported
             expired_tests = expire_tests(
                 session,
@@ -44,36 +53,39 @@ def main(
                         f"No countries registered for idle worker {idle_worker.id}"
                     )
                     continue
-                for country in idle_worker.countries:
-                    # While we have expired "unreported" tests, it is possible that
-                    # a test for a country might still be PENDING as the interval
-                    # for expiration and that of the scheduler might overlap.
-                    # In such scenarios, we skip creating a test for that country.
-                    pending_tests = list_tests(
-                        session,
-                        worker_id=idle_worker.id,
-                        statuses=[StatusEnum.PENDING],
-                        country_code=country.code,
-                    )
+                # While we have expired "unreported" tests, it is possible that
+                # a test for a mirror might still be PENDING as the interval
+                # for expiration and that of the scheduler might overlap.
+                # In such scenarios, we skip creating a test for such workers.
+                pending_tests = list_tests(
+                    session,
+                    worker_id=idle_worker.id,
+                    statuses=[StatusEnum.PENDING],
+                )
 
-                    if pending_tests.nb_tests:
-                        logger.info(
-                            "Skipping creation of new test entries for "
-                            f"{idle_worker.id} as {pending_tests.nb_tests} "
-                            f"tests are still pending for country {country.name}"
-                        )
-                        continue
-
-                    new_test = create_test(
-                        session=session,
-                        worker_id=idle_worker.id,
-                        country_code=country.code,
-                        status=StatusEnum.PENDING,
-                    )
+                if pending_tests.nb_tests:
                     logger.info(
-                        f"Created new test {new_test.id} for worker "
-                        f"{idle_worker.id} in country {country.name}"
+                        "Skipping creation of new test entries for "
+                        f"{idle_worker.id} as {pending_tests.nb_tests} "
+                        f"tests are still pending."
                     )
+                    continue
+
+                # Create a test for each mirror from all the test locations
+                for country in idle_worker.countries:
+                    for mirror in country.mirrors:
+                        for location in test_locations:
+                            new_test = create_test(
+                                session=session,
+                                worker=idle_worker,
+                                country_code=location.code,
+                                mirror=mirror,
+                            )
+                            logger.info(
+                                f"Created new test {new_test.id} for worker "
+                                f"{idle_worker.id} in location {location.name} "
+                                f"for mirror {mirror.id}"
+                            )
 
         logger.info(f"Sleeping for {sleep_seconds} seconds.")
         time.sleep(sleep_seconds)

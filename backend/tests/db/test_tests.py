@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from ipaddress import IPv4Address
 
 import pytest
@@ -6,24 +7,48 @@ from faker import Faker
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db import models
+from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.db.tests import (
-    create_or_update_test,
+    create_test,
     expire_tests,
     filter_test,
     get_test,
     list_tests,
+    update_test,
 )
 from mirrors_qa_backend.enums import StatusEnum
+
+
+def test_test_does_not_exist(dbsession: OrmSession):
+    test_id = uuid.uuid4()
+    with pytest.raises(RecordDoesNotExistError):
+        get_test(dbsession, test_id)
+
+
+def test_create_test(
+    dbsession: OrmSession, db_mirror: models.Mirror, worker: models.Worker
+):
+    test_location = "ng"
+    test = create_test(
+        dbsession,
+        worker=worker,
+        country_code=test_location,
+        mirror=db_mirror,
+    )
+    assert test.worker_id == worker.id
+    assert test.status == StatusEnum.PENDING
+    assert test.mirror_url == db_mirror.base_url
+    assert test.country_code == test_location
 
 
 @pytest.mark.num_tests(1)
 def test_get_test(dbsession: OrmSession, tests: list[models.Test]):
     test = tests[0]
     result = get_test(dbsession, test.id)
-    assert result is not None
     assert result.id == test.id
 
 
+@pytest.mark.num_tests(1, status=StatusEnum.PENDING, country_code="us")
 @pytest.mark.parametrize(
     ["worker_id", "country_code", "statuses", "expected"],
     [
@@ -36,13 +61,13 @@ def test_get_test(dbsession: OrmSession, tests: list[models.Test]):
 )
 def test_basic_filter(
     *,
-    dbsession: OrmSession,
+    tests: list[models.Test],
     worker_id: str | None,
     country_code: str | None,
     statuses: list[StatusEnum] | None,
     expected: bool,
 ):
-    test = create_or_update_test(dbsession, status=StatusEnum.PENDING)
+    test = tests[0]
     assert (
         filter_test(
             test, worker_id=worker_id, country_code=country_code, statuses=statuses
@@ -97,7 +122,7 @@ def test_update_test(dbsession: OrmSession, tests: list[models.Test], data_gen: 
         "started_on": data_gen.date_time(datetime.UTC),
         "latency": latency,
     }
-    updated_test = create_or_update_test(dbsession, test_id, **update_values)  # type: ignore
+    updated_test = update_test(dbsession, test_id, **update_values)  # type: ignore
     for key, value in update_values.items():
         if hasattr(updated_test, key):
             assert getattr(updated_test, key) == value

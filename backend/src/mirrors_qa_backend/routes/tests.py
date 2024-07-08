@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from fastapi import status as status_codes
 
 from mirrors_qa_backend import schemas
-from mirrors_qa_backend.db.tests import create_or_update_test
 from mirrors_qa_backend.db.tests import list_tests as db_list_tests
+from mirrors_qa_backend.db.tests import update_test as update_test_model
 from mirrors_qa_backend.db.worker import update_worker_last_seen
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.routes.dependencies import (
@@ -88,19 +88,19 @@ def update_test(
 ) -> Test:
     data = update.model_dump(exclude_unset=True)
     body = schemas.UpdateTestModel().model_copy(update=data)
-    updated_test = create_or_update_test(
+    updated_test = update_test_model(
         session,
         test_id=test.id,
-        worker_id=current_worker.id,
         status=body.status,
         error=body.error,
         ip_address=body.ip_address,
         asn=body.asn,
-        country_code=body.country_code,
-        location=body.location,
+        city=body.city,
         latency=body.latency,
         download_size=body.download_size,
         duration=body.duration,
+        isp=body.isp,
+        started_on=body.started_on,
         speed=body.speed,
     )
     update_worker_last_seen(session, current_worker)

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Header
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.cryptography import verify_signed_message
+from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.db.worker import get_worker
 from mirrors_qa_backend.exceptions import PEMPublicKeyLoadError
 from mirrors_qa_backend.routes.dependencies import DbSession
@@ -56,9 +57,10 @@ def authenticate_worker(
         )
 
     # verify worker with worker_id exists in database
-    db_worker = get_worker(session, worker_id)
-    if db_worker is None:
-        raise UnauthorizedError()
+    try:
+        db_worker = get_worker(session, worker_id)
+    except RecordDoesNotExistError as exc:
+        raise UnauthorizedError() from exc
 
     # verify signature of message with worker's public keys
     try:
