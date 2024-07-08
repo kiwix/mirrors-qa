@@ -20,7 +20,7 @@ from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.serializer import serialize_mirror
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def dbsession() -> Generator[OrmSession, None, None]:
     with Session.begin() as session:
         # Ensure we are starting with an empty database

@@ -15,7 +15,10 @@ from mirrors_qa_backend.cli.worker import create_worker
     ],
 )
 def test_create_worker(
-    private_key_data: bytes, worker_id: str, country_codes: list[str], expectation: Any
+    private_key_data: bytes,
+    worker_id: str,
+    country_codes: list[str],
+    expectation: Any,
 ):
     with expectation:
         create_worker(worker_id, private_key_data, country_codes)
