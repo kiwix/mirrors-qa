@@ -35,16 +35,16 @@ services:
       retries: 3
   scheduler:
     depends_on:
-      postgresdb:
+      backend:
         condition: service_healthy
     build:
       context: ../backend
     container_name: mirrors-qa-scheduler
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
-      IDLE_WORKER_DURATION: 1d
-      SCHEDULER_SLEEP_DURATION: 1m
-      EXPIRE_TEST_DURATION: 2m
+      IDLE_WORKER_DURATION: 10m
+      SCHEDULER_SLEEP_DURATION: 30m
+      EXPIRE_TEST_DURATION: 1h
       DEBUG: true
     command: mirrors-qa-backend scheduler
   worker-manager:
@@ -67,6 +67,7 @@ services:
       - BACKEND_API_URI=http://backend
       - SLEEP_DURATION=5m
       - TASK_WORKER_IMAGE=mirrors-qa-task-worker
+      - TEST_FILE_URL=https://download.kiwix.org/zim/wikipedia/wikipedia_guw_all_nopic_2023-02.zim
     command: mirrors-qa-manager --verbose ${WORKER_ID}
   task-worker:
     build:
