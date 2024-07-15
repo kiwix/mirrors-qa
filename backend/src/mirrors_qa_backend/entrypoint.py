@@ -9,11 +9,12 @@ from mirrors_qa_backend.__about__ import __version__
 from mirrors_qa_backend.cli.locations import update_test_locations
 from mirrors_qa_backend.cli.mirrors import update_mirrors
 from mirrors_qa_backend.cli.scheduler import main as start_scheduler
-from mirrors_qa_backend.cli.worker import create_worker
+from mirrors_qa_backend.cli.worker import create_worker, update_worker
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 UPDATE_MIRRORS_CLI = "update-mirrors"
 CREATE_WORKER_CLI = "create-worker"
+UPDATE_WORKER_CLI = "update-worker"
 SCHEDULER_CLI = "scheduler"
 UPDATE_LOCATIONS_CLI = "update-locations"
 
@@ -71,18 +72,21 @@ def main():
         metavar="duration",
     )
 
-    create_worker_cli = subparsers.add_parser(
-        CREATE_WORKER_CLI, help="Create a new worker."
-    )
-    create_worker_cli.add_argument(
+    # Parser for holding shared arguments for worker sub-commands
+    worker_parser = argparse.ArgumentParser(add_help=False)
+    worker_parser.add_argument(
         "worker_id", help="ID of the worker.", metavar="worker-id"
     )
-    create_worker_cli.add_argument(
+    worker_parser.add_argument(
         "--countries",
         help="Comma-seperated country codes each in ISO 3166-1 alpha-2 format.",
         type=lambda countries: countries.split(","),
         dest="countries",
         metavar="codes",
+    )
+
+    create_worker_cli = subparsers.add_parser(
+        CREATE_WORKER_CLI, help="Create a new worker.", parents=[worker_parser]
     )
     create_worker_cli.add_argument(
         "private_key_file",
@@ -91,6 +95,10 @@ def main():
         nargs="?",
         default=sys.stdin,
         help="RSA private key file (default: stdin).",
+    )
+
+    subparsers.add_parser(
+        UPDATE_WORKER_CLI, help="Update a worker", parents=[worker_parser]
     )
 
     args = parser.parse_args()
@@ -118,6 +126,15 @@ def main():
             )
         except Exception as exc:
             logger.error(f"error while creating worker: {exc!s}")
+            sys.exit(1)
+    elif args.cli_name == UPDATE_WORKER_CLI:
+        try:
+            update_worker(
+                args.worker_id,
+                args.countries if args.countries else [],
+            )
+        except Exception as exc:
+            logger.error(f"error while updating worker: {exc!s}")
             sys.exit(1)
     elif args.cli_name == UPDATE_LOCATIONS_CLI:
         try:

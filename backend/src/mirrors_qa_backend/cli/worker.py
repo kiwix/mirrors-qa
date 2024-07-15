@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import serialization
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
 from mirrors_qa_backend.db.worker import create_worker as create_db_worker
+from mirrors_qa_backend.db.worker import update_worker as update_db_worker
 
 
 def create_worker(worker_id: str, private_key_data: bytes, country_codes: list[str]):
@@ -30,3 +31,8 @@ def create_worker(worker_id: str, private_key_data: bytes, country_codes: list[s
         )
 
     logger.info(f"Created worker {worker_id} successfully")
+
+
+def update_worker(worker_id: str, country_codes: list[str]):
+    with Session.begin() as session:
+        update_db_worker(session, worker_id, country_codes)
