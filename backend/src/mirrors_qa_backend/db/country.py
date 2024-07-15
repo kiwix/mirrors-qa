@@ -4,9 +4,17 @@ from sqlalchemy.orm import Session as OrmSession
 from mirrors_qa_backend.db.models import Country
 
 
-def get_countries(session: OrmSession, *country_codes: str) -> list[Country]:
+def get_countries(session: OrmSession, country_codes: list[str]) -> list[Country]:
+    """Get countries with the provided country codes.
+
+    Gets all countries if no country codes are provided.
+    """
     return list(
-        session.scalars(select(Country).where(Country.code.in_(country_codes))).all()
+        session.scalars(
+            select(Country).where(
+                (Country.code.in_(country_codes)) | (country_codes == [])
+            )
+        ).all()
     )
 
 

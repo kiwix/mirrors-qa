@@ -44,13 +44,25 @@ def create_worker(
         pubkey_pkcs8=public_key_pkcs8,
         pubkey_fingerprint=get_public_key_fingerprint(public_key),
     )
-    session.add(worker)
 
-    for db_country in get_countries(session, *country_codes):
-        db_country.worker_id = worker_id
-        session.add(db_country)
+    update_worker_countries(session, worker, country_codes)
 
     return worker
+
+
+def update_worker_countries(
+    session: OrmSession, worker: Worker, country_codes: list[str]
+) -> Worker:
+    worker.countries = get_countries(session, country_codes)
+    session.add(worker)
+    return worker
+
+
+def update_worker(
+    session: OrmSession, worker_id: str, country_codes: list[str]
+) -> Worker:
+    worker = get_worker(session, worker_id)
+    return update_worker_countries(session, worker, country_codes)
 
 
 def get_workers_last_seen_in_range(

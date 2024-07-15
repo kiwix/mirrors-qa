@@ -4,7 +4,14 @@ import datetime
 from ipaddress import IPv4Address
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, INET
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -47,7 +54,19 @@ class Base(MappedAsDataclass, DeclarativeBase):
     pass
 
 
+class WorkerCountry(Base):
+    """Association table for many-to-many relationships between worker and country."""
+
+    __tablename__ = "worker_country"
+    worker_id: Mapped[str] = mapped_column(ForeignKey("worker.id"), primary_key=True)
+    country_code: Mapped[str] = mapped_column(
+        ForeignKey("country.code"), primary_key=True
+    )
+
+
 class Country(Base):
+    """Country where a mirror is located."""
+
     __tablename__ = "country"
 
     code: Mapped[str] = mapped_column(
@@ -56,12 +75,17 @@ class Country(Base):
 
     name: Mapped[str]  # full name of the country (in English)
 
-    worker_id: Mapped[str | None] = mapped_column(ForeignKey("worker.id"), init=False)
-    worker: Mapped[Worker | None] = relationship(back_populates="countries", init=False)
+    workers: Mapped[list[Worker]] = relationship(
+        back_populates="countries",
+        init=False,
+        secondary=WorkerCountry.__table__,
+        repr=False,
+    )
     mirrors: Mapped[list[Mirror]] = relationship(
         back_populates="country",
         init=False,
         cascade="all, delete-orphan",
+        repr=False,
     )
 
     __table_args__ = (UniqueConstraint("name", "code"),)
@@ -88,9 +112,13 @@ class Mirror(Base):
         ForeignKey("country.code"),
         init=False,
     )
-    country: Mapped[Country] = relationship(back_populates="mirrors", init=False)
+    country: Mapped[Country] = relationship(
+        back_populates="mirrors", init=False, repr=False
+    )
 
-    tests: Mapped[list[Test]] = relationship(back_populates="mirror", init=False)
+    tests: Mapped[list[Test]] = relationship(
+        back_populates="mirror", init=False, repr=False
+    )
 
     __table_args__ = (UniqueConstraint("base_url"),)
 
@@ -100,15 +128,22 @@ class Worker(Base):
     id: Mapped[str] = mapped_column(primary_key=True)
     # RSA public key in PKCS8 format for generating access tokens required
     # to make requests to the web server
-    pubkey_pkcs8: Mapped[str]
-    pubkey_fingerprint: Mapped[str]
+    pubkey_pkcs8: Mapped[str] = mapped_column(repr=False)
+    pubkey_fingerprint: Mapped[str] = mapped_column(repr=False)
 
     last_seen_on: Mapped[datetime.datetime] = mapped_column(
         default_factory=datetime.datetime.now
     )
-    countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
+    countries: Mapped[list[Country]] = relationship(
+        back_populates="workers",
+        init=False,
+        secondary=WorkerCountry.__table__,
+        cascade="all, delete",
+    )
 
-    tests: Mapped[list[Test]] = relationship(back_populates="worker", init=False)
+    tests: Mapped[list[Test]] = relationship(
+        back_populates="worker", init=False, repr=False
+    )
 
 
 class Test(Base):
@@ -150,12 +185,18 @@ class Test(Base):
         ForeignKey("worker.id"), init=False, default=None
     )
 
-    worker: Mapped[Worker | None] = relationship(back_populates="tests", init=False)
+    worker: Mapped[Worker | None] = relationship(
+        back_populates="tests", init=False, repr=False
+    )
 
-    mirror: Mapped[Mirror | None] = relationship(back_populates="tests", init=False)
+    mirror: Mapped[Mirror | None] = relationship(
+        back_populates="tests", init=False, repr=False
+    )
 
 
 class Location(Base):
+    """Country to run tests from."""
+
     __tablename__ = "location"
     code: Mapped[str] = mapped_column(
         primary_key=True
