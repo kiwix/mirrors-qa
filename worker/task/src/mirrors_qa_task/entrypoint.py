@@ -23,11 +23,12 @@ def main():
         action="version",
         version="%(prog)s " + __version__,
     )
+    parser.add_argument("url", help="URL of speedtest file.")
     args = parser.parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
 
-    metrics = asdict(get_download_metrics(Settings.TEST_FILE_URL))
+    metrics = asdict(get_download_metrics(args.url))
     (Settings.WORKDIR / args.output).write_text(json.dumps(metrics))
 
     logger.info(f"Saved data to {args.output}")

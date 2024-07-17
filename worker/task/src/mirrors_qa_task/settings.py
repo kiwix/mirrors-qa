@@ -25,8 +25,4 @@ class Settings:
     DEBUG = bool(getenv("DEBUG", default=False))
     WORKDIR = Path(getenv("WORKDIR", default="/data")).resolve()
     USER_AGENT = getenv("USER_AGENT", default="speedtester/robot")
-    TEST_FILE_URL = getenv(
-        "TEST_FILE_URL",
-        default="https://download.kiwix.org/zim/wikipedia/speedtest_en_blob_2024-05.zim",
-    )
-    CHUNK_SIZE = parse_size(getenv("CHUNK_SIZE", default="1MiB"))
+    CHUNK_SIZE = parse_size(getenv("CHUNK_SIZE", default="10MiB"))

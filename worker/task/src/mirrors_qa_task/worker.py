@@ -23,15 +23,16 @@ def get_download_metrics(
     retries: int = Settings.REQUESTS_MAX_RETRIES,
     interval: float = Settings.REQUESTS_RETRY_SECONDS,
 ) -> Metrics:
-    attempt = 0
-    url_components = urlsplit(url)
-    filename = Path(url_components.path).name
-    logger.info(f"Downloading {filename} from {url_components.netloc}")
+    url_parts = urlsplit(url)
+    filename = Path(url_parts.path).name
+    logger.info(f"Downloading {filename} from {url_parts.netloc}")
 
-    while True:
-        attempt += 1
+    error_message = None
+    attempts = 0
+    while attempts <= retries:
         started_on = datetime.datetime.now(datetime.UTC).isoformat()
         try:
+            attempts += 1
             start = time.perf_counter()
 
             resp = requests.get(
@@ -74,19 +75,19 @@ def get_download_metrics(
                 speed=speed,
             )
         except RequestException as exc:
-            if attempt <= retries:
-                logger.warning(
-                    "error while getting download metrics "
-                    f"(attempt: {attempt}): {exc!s}"
-                )
-                time.sleep(interval * attempt)
-                continue
-            return Metrics(
-                started_on=started_on,
-                status="ERRORED",
-                error=str(exc),
-                latency=0.0,
-                download_size=0,
-                duration=0,
-                speed=0.0,
+            error_message = str(exc)
+            logger.warning(
+                "error while getting download metrics "
+                f"(attempt: {attempts}): {exc!s}"
             )
+            time.sleep(interval * attempts)
+
+    return Metrics(
+        started_on=datetime.datetime.now(datetime.UTC).isoformat(),
+        status="ERRORED",
+        error=error_message,
+        latency=0.0,
+        download_size=0,
+        duration=0,
+        speed=0.0,
+    )
