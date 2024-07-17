@@ -6,7 +6,6 @@ from humanfriendly import parse_timespan
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.__about__ import __version__
-from mirrors_qa_backend.cli.locations import update_test_locations
 from mirrors_qa_backend.cli.mirrors import update_mirrors
 from mirrors_qa_backend.cli.scheduler import main as start_scheduler
 from mirrors_qa_backend.cli.worker import create_worker, update_worker
@@ -16,11 +15,10 @@ UPDATE_MIRRORS_CLI = "update-mirrors"
 CREATE_WORKER_CLI = "create-worker"
 UPDATE_WORKER_CLI = "update-worker"
 SCHEDULER_CLI = "scheduler"
-UPDATE_LOCATIONS_CLI = "update-locations"
 
 
 def main():
-    # The program is split into a number of sub-commands which each sbu-command
+    # The program is split into a number of sub-commands with each sub-command
     # performing different function and requring different different kinds of
     # command line arguments
     parser = argparse.ArgumentParser()
@@ -38,10 +36,6 @@ def main():
     subparsers = parser.add_subparsers(required=True, dest="cli_name")
 
     subparsers.add_parser(UPDATE_MIRRORS_CLI, help="Update the list of mirrors")
-
-    subparsers.add_parser(
-        UPDATE_LOCATIONS_CLI, help="Update the list of test locations."
-    )
 
     scheduler_cli = subparsers.add_parser(
         SCHEDULER_CLI,
@@ -135,12 +129,6 @@ def main():
             )
         except Exception as exc:
             logger.error(f"error while updating worker: {exc!s}")
-            sys.exit(1)
-    elif args.cli_name == UPDATE_LOCATIONS_CLI:
-        try:
-            update_test_locations()
-        except Exception:
-            logger.error("error while updating test locations")
             sys.exit(1)
     else:
         args.print_help()

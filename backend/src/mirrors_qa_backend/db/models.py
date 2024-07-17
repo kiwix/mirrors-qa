@@ -65,7 +65,7 @@ class WorkerCountry(Base):
 
 
 class Country(Base):
-    """Country where a mirror is located."""
+    """Country where a worker runs tests for a mirror."""
 
     __tablename__ = "country"
 
@@ -79,12 +79,6 @@ class Country(Base):
         back_populates="countries",
         init=False,
         secondary=WorkerCountry.__table__,
-        repr=False,
-    )
-    mirrors: Mapped[list[Mirror]] = relationship(
-        back_populates="country",
-        init=False,
-        cascade="all, delete-orphan",
         repr=False,
     )
 
@@ -107,14 +101,6 @@ class Mirror(Base):
     region_only: Mapped[bool | None] = mapped_column(default=None)
     as_only: Mapped[bool | None] = mapped_column(default=None)
     other_countries: Mapped[list[str] | None] = mapped_column(default=None)
-
-    country_code: Mapped[str] = mapped_column(
-        ForeignKey("country.code"),
-        init=False,
-    )
-    country: Mapped[Country] = relationship(
-        back_populates="mirrors", init=False, repr=False
-    )
 
     tests: Mapped[list[Test]] = relationship(
         back_populates="mirror", init=False, repr=False
@@ -174,7 +160,7 @@ class Test(Base):
     ip_address: Mapped[IPv4Address | None] = mapped_column(default=None)
     # autonomous system based on IP
     asn: Mapped[str | None] = mapped_column(default=None)
-    # country to run the test from (not necessarily the mirror country)
+    # country to run the test from
     country_code: Mapped[str | None] = mapped_column(default=None)
     city: Mapped[str | None] = mapped_column(default=None)  # city based on IP
     latency: Mapped[float | None] = mapped_column(default=None)  # milliseconds
@@ -192,13 +178,3 @@ class Test(Base):
     mirror: Mapped[Mirror | None] = relationship(
         back_populates="tests", init=False, repr=False
     )
-
-
-class Location(Base):
-    """Country to run tests from."""
-
-    __tablename__ = "location"
-    code: Mapped[str] = mapped_column(
-        primary_key=True
-    )  # two-letter country codes as defined in ISO 3166-1
-    name: Mapped[str]  # full name of the country (in English)

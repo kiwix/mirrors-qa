@@ -74,7 +74,6 @@ def test_re_enable_existing_mirror(
         as_only=None,
         other_countries=None,
     )
-    db_mirror.country = models.Country(code="dk", name="Denmark")
     dbsession.add(db_mirror)
 
     # Update the status of the mirror

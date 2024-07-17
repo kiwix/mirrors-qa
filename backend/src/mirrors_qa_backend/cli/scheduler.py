@@ -3,11 +3,10 @@ import time
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
-from mirrors_qa_backend.db.location import get_all_locations
+from mirrors_qa_backend.db.mirrors import get_enabled_mirrors
 from mirrors_qa_backend.db.tests import create_test, expire_tests, list_tests
 from mirrors_qa_backend.db.worker import get_idle_workers
 from mirrors_qa_backend.enums import StatusEnum
-from mirrors_qa_backend.locations import update_locations
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 
@@ -18,13 +17,7 @@ def main(
 ):
     while True:
         with Session.begin() as session:
-            # Ensure there are test locations available. Create if none exist
-            test_locations = get_all_locations(session)
-            if not test_locations:
-                test_locations = update_locations(session)
-
-            logger.info(f"Found {len(test_locations)} test locations in DB.")
-
+            mirrors = get_enabled_mirrors(session)
             # expire tests whose results have not been reported
             expired_tests = expire_tests(
                 session,
@@ -71,21 +64,20 @@ def main(
                     )
                     continue
 
-                # Create a test for each mirror from all the test locations
+                # Create a test for each mirror from the countries the worker registered
                 for country in idle_worker.countries:
-                    for mirror in country.mirrors:
-                        for location in test_locations:
-                            new_test = create_test(
-                                session=session,
-                                worker=idle_worker,
-                                country_code=location.code,
-                                mirror=mirror,
-                            )
-                            logger.info(
-                                f"Created new test {new_test.id} for worker "
-                                f"{idle_worker.id} in location {location.name} "
-                                f"for mirror {mirror.id}"
-                            )
+                    for mirror in mirrors:
+                        new_test = create_test(
+                            session=session,
+                            worker=idle_worker,
+                            country_code=country.code,
+                            mirror=mirror,
+                        )
+                        logger.info(
+                            f"Created new test {new_test.id} for worker "
+                            f"{idle_worker.id} in location {country.name} "
+                            f"for mirror {mirror.id}"
+                        )
 
         logger.info(f"Sleeping for {sleep_seconds} seconds.")
         time.sleep(sleep_seconds)

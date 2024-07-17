@@ -80,7 +80,7 @@ def get_workers_last_seen_in_range(
 
 def get_idle_workers(session: OrmSession, interval: datetime.timedelta) -> list[Worker]:
     end = datetime.datetime.now() - interval
-    begin = datetime.datetime(1970, 1, 1)
+    begin = datetime.datetime.fromtimestamp(0)
     return get_workers_last_seen_in_range(session, begin, end)
 
 

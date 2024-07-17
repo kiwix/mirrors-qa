@@ -12,11 +12,6 @@ class BaseModel(pydantic.BaseModel):
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
 
-class Country(BaseModel):
-    code: str  # two-letter country codes as defined in ISO 3166-1
-    name: str  # full name of country (in English)
-
-
 class Mirror(BaseModel):
     id: str  # hostname of a mirror URL
     base_url: str
@@ -30,7 +25,6 @@ class Mirror(BaseModel):
     region_only: bool | None = None
     as_only: bool | None = None
     other_countries: list[str] | None = None
-    country: Country
 
 
 class UpdateTestModel(BaseModel):

@@ -99,6 +99,8 @@ def list_tests(
     result = TestListResult(nb_tests=0, tests=[])
 
     for total_records, test in session.execute(query).all():
+        # Because the SQL window function returns the total_records
+        # for every row, assign that value to the nb_tests
         result.nb_tests = total_records
         result.tests.append(test)
 

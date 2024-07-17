@@ -36,5 +36,4 @@ def serialize_mirror(mirror: models.Mirror) -> schemas.Mirror:
         region_only=mirror.region_only,
         as_only=mirror.as_only,
         other_countries=mirror.other_countries,
-        country=schemas.Country(code=mirror.country.code, name=mirror.country.name),
     )

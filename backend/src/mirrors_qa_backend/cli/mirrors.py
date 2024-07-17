@@ -5,6 +5,7 @@ from mirrors_qa_backend.extract import get_current_mirrors
 
 
 def update_mirrors() -> None:
+    """Update the list of active mirrors in the DB."""
     logger.info("Updating mirrors list.")
     with Session.begin() as session:
         results = create_or_update_mirror_status(session, get_current_mirrors())

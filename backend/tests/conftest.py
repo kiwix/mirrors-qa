@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session as OrmSession
 from mirrors_qa_backend import schemas
 from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import Session
-from mirrors_qa_backend.db.models import Base, Country, Mirror, Test, Worker
+from mirrors_qa_backend.db.models import Base, Mirror, Test, Worker
 from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.serializer import serialize_mirror
 
@@ -153,7 +153,6 @@ def db_mirror(dbsession: OrmSession) -> Mirror:
         as_only=None,
         other_countries=None,
     )
-    mirror.country = Country(code="in", name="India")
     dbsession.add(mirror)
     return mirror
 
@@ -178,8 +177,4 @@ def new_schema_mirror() -> schemas.Mirror:
         region_only=None,
         as_only=None,
         other_countries=None,
-        country=schemas.Country(
-            code="dk",
-            name="Denmark",
-        ),
     )

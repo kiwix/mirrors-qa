@@ -4,10 +4,8 @@ from urllib.parse import urlsplit
 import requests
 from bs4 import BeautifulSoup, NavigableString
 from bs4.element import Tag
-from pycountry.db import Country
 
-from mirrors_qa_backend import logger, schemas
-from mirrors_qa_backend.country import get_country
+from mirrors_qa_backend import schemas
 from mirrors_qa_backend.exceptions import MirrorsExtractError, MirrorsRequestError
 from mirrors_qa_backend.settings import Settings
 
@@ -55,22 +53,11 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         ).netloc  # pyright: ignore [reportUnknownMemberType]
         if hostname in Settings.MIRRORS_EXCLUSION_LIST:
             continue
-        country_name = row.find("img").next_sibling.text.strip()
-        try:
-            country: Country = get_country(country_name)
-        except ValueError:
-            logger.error(f"Could not get information for country: {country_name}")
-            continue
-        else:
-            mirrors.append(
-                schemas.Mirror(
-                    id=hostname,
-                    base_url=base_url,
-                    enabled=True,
-                    country=schemas.Country(
-                        code=country.alpha_2.lower(),
-                        name=country.name,
-                    ),
-                )
+        mirrors.append(
+            schemas.Mirror(
+                id=hostname,
+                base_url=base_url,
+                enabled=True,
             )
+        )
     return mirrors
