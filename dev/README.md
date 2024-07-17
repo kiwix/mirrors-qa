@@ -64,7 +64,8 @@ docker compose --profile worker up --build
     The key name `id_rsa` is used as a bind mount in the compose file.
 
 - Assuming the backend service is up (`docker compose up backend`), create a worker and assign them a list of countries to test for.
-    If no countries are provided, all available countries wiil be assigned to the worker.
+    If no countries are provided, all available countries in the DB wiil be assigned to the worker. You can update the countries using `mirrors-qa-backend update-worker`.
+
     In this example, we create a worker named `test` to test for mirrors in France, United States and Canada using the private key file
     named `id_rsa`.
     ```sh
@@ -115,6 +116,7 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `WIREGUARD_HEALTHCHECK_TIMEOUT_SECONDS`
 - `WIREGUARD_HEALTHCHECK_RETRIES`
 - `TASK_WORKER_IMAGE`
+- `TEST_FILE_PATH`: location of file to run download speed test
 
 ## task-worker
 

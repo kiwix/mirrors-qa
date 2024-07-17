@@ -14,6 +14,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    ports:
+      - 5432
   backend:
     depends_on:
       postgresdb:
@@ -67,7 +69,7 @@ services:
       - BACKEND_API_URI=http://backend
       - SLEEP_DURATION=5m
       - TASK_WORKER_IMAGE=mirrors-qa-task-worker
-      - TEST_FILE_URL=https://download.kiwix.org/zim/wikipedia/wikipedia_guw_all_nopic_2023-02.zim
+      - TEST_FILE_PATH=/zim/wikipedia/wikipedia_guw_all_nopic_2023-02.zim
     command: mirrors-qa-manager --verbose ${WORKER_ID}
   task-worker:
     build:
