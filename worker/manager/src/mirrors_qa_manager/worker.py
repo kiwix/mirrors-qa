@@ -8,7 +8,7 @@ import time
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 
 import pycountry
 from docker.models.containers import Container
@@ -80,7 +80,6 @@ class WorkerManager:
 
         self.task_container_names = set()
         # location of the test file on the from the mirror's root
-        self.test_file_path: str = urlsplit(Settings.TEST_FILE_URL).path
 
         self.auth_credentials: None | AuthCredentials = None
 
@@ -186,11 +185,10 @@ class WorkerManager:
             name=container_name,
             environment={
                 "DEBUG": Settings.DEBUG,
-                "TEST_FILE_URL": test_file_url,
             },
             mounts=mounts,
             network_mode=f"container:{Settings.WIREGUARD_CONTAINER_NAME}",
-            command=["mirrors-qa-task", f"--output={output_filename}"],
+            command=["mirrors-qa-task", test_file_url, f"--output={output_filename}"],
         )
 
     def query_api(
@@ -382,7 +380,7 @@ class WorkerManager:
                     test_file_url = (
                         test["mirror_url"].rstrip("/")
                         + "/"
-                        + self.test_file_path.lstrip("/")
+                        + Settings.TEST_FILE_PATH.lstrip("/")
                     )
                     try:
                         self.task_container_names.add(task_container_name)
