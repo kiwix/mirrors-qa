@@ -2,11 +2,10 @@ from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
-from sqlalchemy.orm import selectinload
 
 from mirrors_qa_backend import logger, schemas
-from mirrors_qa_backend.db import models
-from mirrors_qa_backend.db.exceptions import EmptyMirrorsError
+from mirrors_qa_backend.db.exceptions import EmptyMirrorsError, RecordDoesNotExistError
+from mirrors_qa_backend.db.models import Mirror
 
 
 @dataclass
@@ -24,7 +23,7 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
     """
     nb_created = 0
     for mirror in mirrors:
-        db_mirror = models.Mirror(
+        db_mirror = Mirror(
             id=mirror.id,
             base_url=mirror.base_url,
             enabled=mirror.enabled,
@@ -38,20 +37,8 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
             as_only=mirror.as_only,
             other_countries=mirror.other_countries,
         )
-        # Ensure the country exists for the mirror
-        country = session.scalars(
-            select(models.Country).where(models.Country.code == mirror.country.code)
-        ).one_or_none()
-
-        if country is None:
-            country = models.Country(code=mirror.country.code, name=mirror.country.name)
-            session.add(country)
-
-        db_mirror.country = country
         session.add(db_mirror)
-        logger.debug(
-            f"Registered new mirror: {db_mirror.id} for country: {country.name}"
-        )
+        logger.debug(f"Registered new mirror: {db_mirror.id}.")
         nb_created += 1
     return nb_created
 
@@ -79,9 +66,8 @@ def create_or_update_mirror_status(
     # Map the id (hostname) of each mirror from the database for comparison
     # against the id of mirrors in current_mirrors. To be used in determining
     # if this mirror should be disabled
-    query = select(models.Mirror).options(selectinload(models.Mirror.country))
-    db_mirrors: dict[str, models.Mirror] = {
-        mirror.id: mirror for mirror in session.scalars(query).all()
+    db_mirrors: dict[str, Mirror] = {
+        mirror.id: mirror for mirror in session.scalars(select(Mirror)).all()
     }
 
     # Create any mirror that doesn't exist on the database
@@ -95,19 +81,30 @@ def create_or_update_mirror_status(
     # exists in the list, re-enable it
     for db_mirror_id, db_mirror in db_mirrors.items():
         if db_mirror_id not in current_mirrors:
-            logger.debug(
-                f"Disabling mirror: {db_mirror.id} for "
-                f"country: {db_mirror.country.name}"
-            )
+            logger.debug(f"Disabling mirror: {db_mirror.id}")
             db_mirror.enabled = False
             session.add(db_mirror)
             result.nb_mirrors_disabled += 1
         elif not db_mirror.enabled:  # re-enable mirror if it was disabled
-            logger.debug(
-                f"Re-enabling mirror: {db_mirror.id} for "
-                f"country: {db_mirror.country.name}"
-            )
+            logger.debug(f"Re-enabling mirror: {db_mirror.id}")
             db_mirror.enabled = True
             session.add(db_mirror)
             result.nb_mirrors_added += 1
     return result
+
+
+def get_mirror(session: OrmSession, mirror_id: str) -> Mirror:
+    """Get a mirror from the DB."""
+    mirror = session.scalars(select(Mirror).where(Mirror.id == mirror_id)).one_or_none()
+    if mirror is None:
+        raise RecordDoesNotExistError(f"Mirror with id: {mirror_id} does not exist.")
+    return mirror
+
+
+def get_enabled_mirrors(session: OrmSession) -> list[Mirror]:
+    """Get all the enabled mirrors from the DB"""
+    return list(
+        session.scalars(
+            select(Mirror).where(Mirror.enabled == True)  # noqa: E712
+        ).all()
+    )

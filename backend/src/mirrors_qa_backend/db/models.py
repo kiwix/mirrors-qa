@@ -4,7 +4,14 @@ import datetime
 from ipaddress import IPv4Address
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, UniqueConstraint, text
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, INET
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -47,7 +54,19 @@ class Base(MappedAsDataclass, DeclarativeBase):
     pass
 
 
+class WorkerCountry(Base):
+    """Association table for many-to-many relationships between worker and country."""
+
+    __tablename__ = "worker_country"
+    worker_id: Mapped[str] = mapped_column(ForeignKey("worker.id"), primary_key=True)
+    country_code: Mapped[str] = mapped_column(
+        ForeignKey("country.code"), primary_key=True
+    )
+
+
 class Country(Base):
+    """Country where a worker runs tests for a mirror."""
+
     __tablename__ = "country"
 
     code: Mapped[str] = mapped_column(
@@ -56,15 +75,12 @@ class Country(Base):
 
     name: Mapped[str]  # full name of the country (in English)
 
-    worker_id: Mapped[str | None] = mapped_column(ForeignKey("worker.id"), init=False)
-    worker: Mapped[Worker | None] = relationship(back_populates="countries", init=False)
-    mirrors: Mapped[list[Mirror]] = relationship(
-        back_populates="country",
+    workers: Mapped[list[Worker]] = relationship(
+        back_populates="countries",
         init=False,
-        cascade="all, delete-orphan",
+        secondary=WorkerCountry.__table__,
+        repr=False,
     )
-
-    tests: Mapped[list[Test]] = relationship(back_populates="country", init=False)
 
     __table_args__ = (UniqueConstraint("name", "code"),)
 
@@ -86,11 +102,11 @@ class Mirror(Base):
     as_only: Mapped[bool | None] = mapped_column(default=None)
     other_countries: Mapped[list[str] | None] = mapped_column(default=None)
 
-    country_code: Mapped[str] = mapped_column(
-        ForeignKey("country.code"),
-        init=False,
+    tests: Mapped[list[Test]] = relationship(
+        back_populates="mirror", init=False, repr=False
     )
-    country: Mapped[Country] = relationship(back_populates="mirrors", init=False)
+
+    __table_args__ = (UniqueConstraint("base_url"),)
 
 
 class Worker(Base):
@@ -98,15 +114,22 @@ class Worker(Base):
     id: Mapped[str] = mapped_column(primary_key=True)
     # RSA public key in PKCS8 format for generating access tokens required
     # to make requests to the web server
-    pubkey_pkcs8: Mapped[str]
-    pubkey_fingerprint: Mapped[str]
+    pubkey_pkcs8: Mapped[str] = mapped_column(repr=False)
+    pubkey_fingerprint: Mapped[str] = mapped_column(repr=False)
 
     last_seen_on: Mapped[datetime.datetime] = mapped_column(
         default_factory=datetime.datetime.now
     )
-    countries: Mapped[list[Country]] = relationship(back_populates="worker", init=False)
+    countries: Mapped[list[Country]] = relationship(
+        back_populates="workers",
+        init=False,
+        secondary=WorkerCountry.__table__,
+        cascade="all, delete",
+    )
 
-    tests: Mapped[list[Test]] = relationship(back_populates="worker", init=False)
+    tests: Mapped[list[Test]] = relationship(
+        back_populates="worker", init=False, repr=False
+    )
 
 
 class Test(Base):
@@ -128,25 +151,30 @@ class Test(Base):
         ),
         default=StatusEnum.PENDING,
     )
+    # Base URL of the mirror which the test will be run
+    mirror_url: Mapped[str | None] = mapped_column(
+        ForeignKey("mirror.base_url"), init=False, default=None
+    )
     error: Mapped[str | None] = mapped_column(default=None)
     isp: Mapped[str | None] = mapped_column(default=None)
     ip_address: Mapped[IPv4Address | None] = mapped_column(default=None)
     # autonomous system based on IP
     asn: Mapped[str | None] = mapped_column(default=None)
-    country_code: Mapped[str | None] = mapped_column(
-        ForeignKey("country.code"),
-        init=False,
-        default=None,
-    )
-    location: Mapped[str | None] = mapped_column(default=None)  # city based on IP
-    latency: Mapped[int | None] = mapped_column(default=None)  # milliseconds
+    # country to run the test from
+    country_code: Mapped[str | None] = mapped_column(default=None)
+    city: Mapped[str | None] = mapped_column(default=None)  # city based on IP
+    latency: Mapped[float | None] = mapped_column(default=None)  # milliseconds
     download_size: Mapped[int | None] = mapped_column(default=None)  # bytes
-    duration: Mapped[int | None] = mapped_column(default=None)  # seconds
+    duration: Mapped[float | None] = mapped_column(default=None)  # seconds
     speed: Mapped[float | None] = mapped_column(default=None)  # bytes per second
     worker_id: Mapped[str | None] = mapped_column(
         ForeignKey("worker.id"), init=False, default=None
     )
 
-    worker: Mapped[Worker | None] = relationship(back_populates="tests", init=False)
+    worker: Mapped[Worker | None] = relationship(
+        back_populates="tests", init=False, repr=False
+    )
 
-    country: Mapped[Country | None] = relationship(back_populates="tests", init=False)
+    mirror: Mapped[Mirror | None] = relationship(
+        back_populates="tests", init=False, repr=False
+    )

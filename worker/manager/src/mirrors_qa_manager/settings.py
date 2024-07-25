@@ -56,4 +56,8 @@ class Settings:
     WIREGUARD_HEALTHCHECK_RETRIES = int(
         getenv("WIREGUARD_HEALTHCHECK_RETRIES", default=3)
     )
-    TASK_WORKER_IMAGE = getenv("TASK_WORKER_IMAGE", mandatory=True)
+    TASK_WORKER_IMAGE: str = getenv("TASK_WORKER_IMAGE", mandatory=True)
+    TEST_FILE_PATH: str = getenv(
+        "TEST_FILE_PATH",
+        default="/zim/wikipedia/speedtest_en_blob_2024-05.zim",
+    )

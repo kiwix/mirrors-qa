@@ -17,3 +17,9 @@ class PEMPublicKeyLoadError(Exception):
     """Unable to deserialize a public key from PEM encoded data"""
 
     pass
+
+
+class LocationsRequestError(RequestException):
+    """A network error occurred while fetching locations from the locations URL"""
+
+    pass

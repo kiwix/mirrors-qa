@@ -6,9 +6,8 @@ from uuid import UUID
 from sqlalchemy import UnaryExpression, asc, desc, func, select, update
 from sqlalchemy.orm import Session as OrmSession
 
-from mirrors_qa_backend.db import models
-from mirrors_qa_backend.db.country import get_country_or_none
 from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
+from mirrors_qa_backend.db.models import Mirror, Test, Worker
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.settings import Settings
 
@@ -18,11 +17,11 @@ class TestListResult:
     """Result of query to list tests from the database."""
 
     nb_tests: int
-    tests: list[models.Test]
+    tests: list[Test]
 
 
 def filter_test(
-    test: models.Test,
+    test: Test,
     *,
     worker_id: str | None = None,
     country_code: str | None = None,
@@ -42,10 +41,11 @@ def filter_test(
     return True
 
 
-def get_test(session: OrmSession, test_id: UUID) -> models.Test | None:
-    return session.scalars(
-        select(models.Test).where(models.Test.id == test_id)
-    ).one_or_none()
+def get_test(session: OrmSession, test_id: UUID) -> Test:
+    test = session.scalars(select(Test).where(Test.id == test_id)).one_or_none()
+    if test is None:
+        raise RecordDoesNotExistError(f"Test with id: {test_id} does not exist.")
+    return test
 
 
 def list_tests(
@@ -85,11 +85,11 @@ def list_tests(
     # its default in the database which translates to a SQL true i.e we don't
     # filter based on this argument.
     query = (
-        select(func.count().over().label("total_records"), models.Test)
+        select(func.count().over().label("total_records"), Test)
         .where(
-            (models.Test.worker_id == worker_id) | (worker_id is None),
-            (models.Test.country_code == country_code) | (country_code is None),
-            (models.Test.status.in_(statuses)),
+            (Test.worker_id == worker_id) | (worker_id is None),
+            (Test.country_code == country_code) | (country_code is None),
+            (Test.status.in_(statuses)),
         )
         .order_by(*order_by)
         .offset((page_num - 1) * page_size)
@@ -99,52 +99,43 @@ def list_tests(
     result = TestListResult(nb_tests=0, tests=[])
 
     for total_records, test in session.execute(query).all():
+        # Because the SQL window function returns the total_records
+        # for every row, assign that value to the nb_tests
         result.nb_tests = total_records
         result.tests.append(test)
 
     return result
 
 
-def create_or_update_test(
+def update_test(
     session: OrmSession,
-    test_id: UUID | None = None,
+    test_id: UUID,
     *,
-    worker_id: str | None = None,
     status: StatusEnum = StatusEnum.PENDING,
     error: str | None = None,
     ip_address: IPv4Address | None = None,
     asn: str | None = None,
-    country_code: str | None = None,
-    location: str | None = None,
-    latency: int | None = None,
+    city: str | None = None,
+    latency: float | None = None,
     download_size: int | None = None,
-    duration: int | None = None,
+    duration: float | None = None,
     speed: float | None = None,
     started_on: datetime.datetime | None = None,
-) -> models.Test:
-    """Create a test if test_id is None or update the test with test_id"""
-    if test_id is None:
-        test = models.Test()
-    else:
-        test = get_test(session, test_id)
-        if test is None:
-            raise RecordDoesNotExistError(f"Test with id: {test_id} does not exist.")
-
+    isp: str | None = None,
+) -> Test:
+    test = get_test(session, test_id)
     # If a value is provided, it takes precedence over the default value of the model
-    test.worker_id = worker_id if worker_id else test.worker_id
     test.status = status
     test.error = error if error else test.error
     test.ip_address = ip_address if ip_address else test.ip_address
     test.asn = asn if asn else test.asn
-    test.country = (
-        get_country_or_none(session, country_code) if country_code else test.country
-    )
-    test.location = location if location else test.location
+    test.city = city if city else test.city
     test.latency = latency if latency else test.latency
     test.download_size = download_size if download_size else test.download_size
     test.duration = duration if duration else test.duration
     test.speed = speed if speed else test.speed
     test.started_on = started_on if started_on else test.started_on
+    test.isp = isp if isp else test.isp
 
     session.add(test)
     session.flush()
@@ -155,51 +146,31 @@ def create_or_update_test(
 def create_test(
     session: OrmSession,
     *,
-    worker_id: str | None = None,
-    status: StatusEnum = StatusEnum.PENDING,
-    error: str | None = None,
-    ip_address: IPv4Address | None = None,
-    asn: str | None = None,
-    country_code: str | None = None,
-    location: str | None = None,
-    latency: int | None = None,
-    download_size: int | None = None,
-    duration: int | None = None,
-    speed: float | None = None,
-    started_on: datetime.datetime | None = None,
-) -> models.Test:
-    return create_or_update_test(
-        session,
-        test_id=None,
-        worker_id=worker_id,
-        status=status,
-        error=error,
-        ip_address=ip_address,
-        asn=asn,
-        country_code=country_code,
-        location=location,
-        latency=latency,
-        download_size=download_size,
-        duration=duration,
-        speed=speed,
-        started_on=started_on,
-    )
+    worker: Worker,
+    mirror: Mirror,
+    country_code: str,
+) -> Test:
+    test = Test(status=StatusEnum.PENDING, country_code=country_code)
+    test.worker = worker
+    test.mirror = mirror
+
+    session.add(test)
+    session.flush()
+    return test
 
 
-def expire_tests(
-    session: OrmSession, interval: datetime.timedelta
-) -> list[models.Test]:
+def expire_tests(session: OrmSession, interval: datetime.timedelta) -> list[Test]:
     """Change the status of PENDING tests created before the interval to MISSED"""
     end = datetime.datetime.now() - interval
     begin = datetime.datetime.fromtimestamp(0)
     return list(
         session.scalars(
-            update(models.Test)
+            update(Test)
             .where(
-                models.Test.requested_on.between(begin, end),
-                models.Test.status == StatusEnum.PENDING,
+                Test.requested_on.between(begin, end),
+                Test.status == StatusEnum.PENDING,
             )
             .values(status=StatusEnum.MISSED)
-            .returning(models.Test)
+            .returning(Test)
         ).all()
     )

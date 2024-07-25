@@ -5,8 +5,8 @@ This docker-compose configuration to be used **only** for development purpose.
 ### backend
 
 This container is a backend web server, linked to its database.
-It provides a command `mirrors-qa-backend` to simplify tasks like updating of mirrors.
-Run `mirrors-qa-backend --help` in the container to see the sub-commands and options.
+It provides sub-commands to simplify tasks like updating of mirrors.
+Run `mirrors-qa-backend --help` in the container to see the various sub-commands and options.
 
 ### postgresqldb
 
@@ -64,8 +64,10 @@ docker compose --profile worker up --build
     The key name `id_rsa` is used as a bind mount in the compose file.
 
 - Assuming the backend service is up (`docker compose up backend`), create a worker and assign them a list of countries to test for.
-    If an existing worker is responsible for those countries, they are assigned to the new worker. In this example, we create a worker
-    named `test`.
+    If no countries are provided, all available countries in the DB wiil be assigned to the worker. You can update the countries using `mirrors-qa-backend update-worker`.
+
+    In this example, we create a worker named `test` to test for mirrors in France, United States and Canada using the private key file
+    named `id_rsa`.
     ```sh
     docker exec -i mirrors-qa-backend mirrors-qa-backend create-worker --countries=us,fr,ca test < ./id_rsa
     ```
@@ -114,6 +116,7 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `WIREGUARD_HEALTHCHECK_TIMEOUT_SECONDS`
 - `WIREGUARD_HEALTHCHECK_RETRIES`
 - `TASK_WORKER_IMAGE`
+- `TEST_FILE_PATH`: location of file to run download speed test
 
 ## task-worker
 

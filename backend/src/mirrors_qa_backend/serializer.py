@@ -13,11 +13,12 @@ def serialize_test(test: models.Test) -> schemas.Test:
         ip_address=test.ip_address,
         asn=test.asn,
         country_code=test.country_code,
-        location=test.location,
+        city=test.city,
         latency=test.latency,
         download_size=test.download_size,
         duration=test.duration,
         speed=test.speed,
+        mirror_url=test.mirror_url,
     )
 
 
@@ -35,5 +36,4 @@ def serialize_mirror(mirror: models.Mirror) -> schemas.Mirror:
         region_only=mirror.region_only,
         as_only=mirror.as_only,
         other_countries=mirror.other_countries,
-        country=schemas.Country(code=mirror.country.code, name=mirror.country.name),
     )

@@ -10,12 +10,21 @@ from mirrors_qa_backend.cryptography import (
     serialize_public_key,
 )
 from mirrors_qa_backend.db.country import get_countries
-from mirrors_qa_backend.db.exceptions import DuplicatePrimaryKeyError
+from mirrors_qa_backend.db.exceptions import (
+    DuplicatePrimaryKeyError,
+    RecordDoesNotExistError,
+)
 from mirrors_qa_backend.db.models import Worker
 
 
-def get_worker(session: OrmSession, worker_id: str) -> Worker | None:
+def get_worker_or_none(session: OrmSession, worker_id: str) -> Worker | None:
     return session.scalars(select(Worker).where(Worker.id == worker_id)).one_or_none()
+
+
+def get_worker(session: OrmSession, worker_id: str) -> Worker:
+    if worker := get_worker_or_none(session, worker_id):
+        return worker
+    raise RecordDoesNotExistError(f"Worker with id: {worker_id} does not exist.")
 
 
 def create_worker(
@@ -25,7 +34,7 @@ def create_worker(
     private_key: RSAPrivateKey,
 ) -> Worker:
     """Creates a worker using RSA private key."""
-    if get_worker(session, worker_id) is not None:
+    if get_worker_or_none(session, worker_id) is not None:
         raise DuplicatePrimaryKeyError(f"A worker with id {worker_id} already exists.")
 
     public_key = generate_public_key(private_key)
@@ -35,13 +44,25 @@ def create_worker(
         pubkey_pkcs8=public_key_pkcs8,
         pubkey_fingerprint=get_public_key_fingerprint(public_key),
     )
-    session.add(worker)
 
-    for db_country in get_countries(session, *country_codes):
-        db_country.worker_id = worker_id
-        session.add(db_country)
+    update_worker_countries(session, worker, country_codes)
 
     return worker
+
+
+def update_worker_countries(
+    session: OrmSession, worker: Worker, country_codes: list[str]
+) -> Worker:
+    worker.countries = get_countries(session, country_codes)
+    session.add(worker)
+    return worker
+
+
+def update_worker(
+    session: OrmSession, worker_id: str, country_codes: list[str]
+) -> Worker:
+    worker = get_worker(session, worker_id)
+    return update_worker_countries(session, worker, country_codes)
 
 
 def get_workers_last_seen_in_range(
@@ -59,7 +80,7 @@ def get_workers_last_seen_in_range(
 
 def get_idle_workers(session: OrmSession, interval: datetime.timedelta) -> list[Worker]:
     end = datetime.datetime.now() - interval
-    begin = datetime.datetime(1970, 1, 1)
+    begin = datetime.datetime.fromtimestamp(0)
     return get_workers_last_seen_in_range(session, begin, end)
 
 

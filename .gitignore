@@ -170,3 +170,4 @@ dev/data/**
 !dev/data/README.md
 !dev/.env
 id_rsa
+*.json

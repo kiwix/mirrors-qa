@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from mirrors_qa_backend import schemas
 from mirrors_qa_backend.db import gen_dbsession, models
+from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.db.tests import get_test as db_get_test
 from mirrors_qa_backend.db.worker import get_worker
 from mirrors_qa_backend.routes.http_errors import NotFoundError, UnauthorizedError
@@ -40,9 +41,10 @@ def get_current_worker(
 
     # At this point, we know that the JWT is all OK and we can
     # trust the data in it. We extract the worker_id from the claims
-    db_worker = get_worker(session, claims.subject)
-    if db_worker is None:
-        raise UnauthorizedError()
+    try:
+        db_worker = get_worker(session, claims.subject)
+    except RecordDoesNotExistError as exc:
+        raise UnauthorizedError() from exc
     return db_worker
 
 
@@ -51,9 +53,10 @@ CurrentWorker = Annotated[models.Worker, Depends(get_current_worker)]
 
 def get_test(session: DbSession, test_id: Annotated[UUID4, Path()]) -> models.Test:
     """Fetches the test specified in the request."""
-    test = db_get_test(session, test_id)
-    if test is None:
-        raise NotFoundError(f"Test with id {test_id} does not exist.")
+    try:
+        test = db_get_test(session, test_id)
+    except RecordDoesNotExistError as exc:
+        raise NotFoundError(f"{exc!s}") from exc
     return test
 
 

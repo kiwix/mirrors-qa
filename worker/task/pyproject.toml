@@ -13,6 +13,7 @@ authors = [
 keywords = ["mirrors"]
 dependencies = [
     "requests==2.32.3",
+    "humanfriendly==10.0",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [
