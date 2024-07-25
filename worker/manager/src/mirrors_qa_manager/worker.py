@@ -128,7 +128,6 @@ class WorkerManager:
                 )
             raise FileNotFoundError(message)
 
-        logger.info(f"Copied configuration file {conf_name}.")
         # Move the configuration file to the wg_confs folder of the wireguard
         # container.
         return shutil.copy(
