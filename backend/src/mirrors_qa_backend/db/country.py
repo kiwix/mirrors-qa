@@ -42,3 +42,9 @@ def create_country(
         .on_conflict_do_nothing(index_elements=["code"])
     )
     return get_country(session, country_code)
+
+
+def update_countries(session: OrmSession, country_mapping: dict[str, str]) -> None:
+    """Updates the list of countries in the database."""
+    for country_code, country_name in country_mapping.items():
+        create_country(session, country_code=country_code, country_name=country_name)

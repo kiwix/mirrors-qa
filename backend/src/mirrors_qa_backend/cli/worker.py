@@ -3,17 +3,17 @@ from cryptography.hazmat.primitives import serialization
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
-from mirrors_qa_backend.db.country import create_country
+from mirrors_qa_backend.db.country import update_countries as update_db_countries
 from mirrors_qa_backend.db.worker import create_worker as create_db_worker
 from mirrors_qa_backend.db.worker import update_worker as update_db_worker
 
 
-def get_country_data(*country_codes: str) -> dict[str, str]:
+def get_country_mapping(country_codes: list[str]) -> dict[str, str]:
     """Fetch the country names from the country codes.
 
     Maps the country code to the country name.
     """
-    country_data: dict[str, str] = {}
+    country_mapping: dict[str, str] = {}
     # Ensure all the countries are valid country codes
     for country_code in country_codes:
         if len(country_code) != 2:  # noqa: PLR2004
@@ -22,18 +22,20 @@ def get_country_data(*country_codes: str) -> dict[str, str]:
             )
 
         if country := pycountry.countries.get(alpha_2=country_code):
-            country_data[country_code] = country.name
+            country_mapping[country_code] = country.name
         else:
             raise ValueError(f"'{country_code}' is not valid country code")
-    return country_data
+    return country_mapping
 
 
-def create_worker(worker_id: str, private_key_data: bytes, country_codes: list[str]):
+def create_worker(
+    worker_id: str, private_key_data: bytes, initial_country_codes: list[str]
+):
     """Create a worker in the DB.
 
     Assigns the countries for a worker to run tests from.
     """
-    country_data = get_country_data(*country_codes)
+    country_mapping = get_country_mapping(initial_country_codes)
     private_key = serialization.load_pem_private_key(
         private_key_data, password=None
     )  # pyright: ignore[reportReturnType]
@@ -41,14 +43,11 @@ def create_worker(worker_id: str, private_key_data: bytes, country_codes: list[s
     with Session.begin() as session:
         # Update the database with the countries in case those countries don't
         # exist yet.
-        for country_code, country_name in country_data.items():
-            create_country(
-                session, country_code=country_code, country_name=country_name
-            )
+        update_db_countries(session, country_mapping)
         create_db_worker(
             session,
             worker_id,
-            country_codes,
+            initial_country_codes,
             private_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
         )
 
@@ -60,10 +59,7 @@ def update_worker(worker_id: str, country_codes: list[str]):
 
     Updates the ountries for a worker to run tests from.
     """
-    country_data = get_country_data(*country_codes)
+    country_mapping = get_country_mapping(country_codes)
     with Session.begin() as session:
-        for country_code, country_name in country_data.items():
-            create_country(
-                session, country_code=country_code, country_name=country_name
-            )
+        update_db_countries(session, country_mapping)
         update_db_worker(session, worker_id, country_codes)
