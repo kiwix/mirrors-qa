@@ -1,6 +1,7 @@
 # pyright: strict, reportMissingTypeStubs=false, reportUnknownMemberType=false, reportOptionalSubscript=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 import datetime
 import json
+import random
 import shutil
 import signal
 import sys
@@ -29,6 +30,8 @@ from mirrors_qa_manager.settings import Settings
 
 
 class WgInterfaceStatus(Enum):
+    """Status of the Wireguard interface."""
+
     DOWN = 0
     UP = 1
 
@@ -97,25 +100,31 @@ class WorkerManager:
         Raises:
             FileNotFoundError: configuration file was not found.
         """
-        conf_name = None
 
         if country_code:
-            conf_name = f"{country_code}.conf"
+            pattern = f"{country_code}*.conf"
         else:
-            try:
-                conf_name = (next(self.base_dir.glob("*.conf"))).name
-            except StopIteration:
-                pass
+            pattern = "*.conf"
+
+        conf_name = None
+        try:
+            # Select a random file matching the pattern
+            conf_name = random.choice(  # noqa: S311
+                list(self.base_dir.glob(pattern))
+            ).name
+        except IndexError:
+            # no files found in base_dir
+            pass
 
         if conf_name is None:
-            if not country_code:
+            if country_code:
                 message = (
-                    f"No wireguard configuration file was found in {self.base_dir}"
+                    f"Configuration file for {country_code} was not "
+                    f"found in {self.base_dir}"
                 )
             else:
                 message = (
-                    f"Configuration file {country_code}.conf was not "
-                    f"found in {self.base_dir}"
+                    f"No wireguard configuration file was found in {self.base_dir}"
                 )
             raise FileNotFoundError(message)
 
@@ -326,7 +335,8 @@ class WorkerManager:
                             self.wg_interface_status = WgInterfaceStatus.UP
 
                     # Perform another healthcheck to ensure traffic can go
-                    # through.
+                    # through. Result will be used for populating the IP-related
+                    # data
                     logger.info(
                         "Checking if traffic can pass through wireguard interface "
                         f"for test {test_id}, country: {country_code}"
@@ -341,20 +351,6 @@ class WorkerManager:
                         logger.error(
                             "error while pefroming wireguard healthcheck for "
                             f"test {test_id}, country: {country_code}, {exc!s}"
-                        )
-                        continue
-
-                    # Ensure the country that this IP belongs to is the same as the
-                    # requested country code.
-                    ip_data = json.loads(healthcheck_result.output.decode("utf-8"))
-                    ip_country_code = self.get_country_code(ip_data["country"])
-
-                    if ip_country_code != country_code:
-                        logger.warning(
-                            "Test expects configuration file for "
-                            f"{country_code}, got {ip_country_code} from host. "
-                            f"Skipping test {test_id} due to wrong "
-                            "configuration file."
                         )
                         continue
 
@@ -411,6 +407,7 @@ class WorkerManager:
                     logger.info(
                         f"Successfully retrieved metrics results for test {test_id}"
                     )
+                    ip_data = json.loads(healthcheck_result.output.decode("utf-8"))
                     payload = self.merge_data(
                         ip_data=ip_data,
                         metrics_data=json.loads(results),
