@@ -10,7 +10,7 @@ on:
 jobs:
 
   publish-backend:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Retrieve source code
         uses: actions/checkout@v4
@@ -19,8 +19,7 @@ jobs:
         uses: openzim/docker-publish-action@v10
         with:
           image-name: kiwix/mirrors-qa-backend
-          tag-pattern: /^v([0-9.]+)$/
-          latest-on-tag: true
+          on-master: latest
           restrict-to: kiwix/mirrors-qa
           context: backend
           registries: ghcr.io
