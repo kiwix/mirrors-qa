@@ -58,9 +58,8 @@ def update_countries(
         else:
             raise BadRequestError(f"{country_code} is not a valid country code.")
     update_db_countries(session, country_mapping)
-    update_db_worker(session, worker_id, list(country_mapping.keys()))
-    session.refresh(current_worker)
+    updated_worker = update_db_worker(session, worker_id, list(country_mapping.keys()))
 
     return WorkerCountries(
-        countries=[serialize_country(country) for country in current_worker.countries]
+        countries=[serialize_country(country) for country in updated_worker.countries]
     )

@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db.models import Worker
+from mirrors_qa_backend.db.worker import get_worker
 
 
 @pytest.fixture
@@ -63,7 +64,8 @@ def test_update_worker_countries(
     data = response.json()
     assert "countries" in data
 
-    dbsession.refresh(worker)
+    # reload the worker with the updated countries
+    worker = get_worker(dbsession, worker.id)
     countries = data["countries"]
     assert len(worker.countries) == len(countries)
 
