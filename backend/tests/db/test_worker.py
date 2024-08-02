@@ -1,5 +1,5 @@
 import pytest
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
@@ -7,7 +7,7 @@ from mirrors_qa_backend.db.models import Country, Worker
 from mirrors_qa_backend.db.worker import create_worker, get_worker
 
 
-def test_create_worker(dbsession: OrmSession, private_key: RSAPrivateKey):
+def test_create_worker(dbsession: OrmSession, public_key: RSAPublicKey):
     worker_id = "test"
     countries = [
         Country(code="ng", name="Nigeria"),
@@ -19,7 +19,7 @@ def test_create_worker(dbsession: OrmSession, private_key: RSAPrivateKey):
         dbsession,
         worker_id=worker_id,
         country_codes=[country.code for country in countries],
-        private_key=private_key,
+        public_key=public_key,
     )
     assert new_worker.id == worker_id
     assert new_worker.pubkey_fingerprint != ""

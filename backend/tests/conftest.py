@@ -96,16 +96,19 @@ def private_key() -> RSAPrivateKey:
 
 
 @pytest.fixture(scope="session")
-def public_key(private_key: RSAPrivateKey) -> RSAPublicKey:
-    return private_key.public_key()
+def public_key_data(private_key: RSAPrivateKey) -> bytes:
+    """Serialize public key using PEM format."""
+    return private_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
 
 
 @pytest.fixture(scope="session")
-def private_key_data(private_key: RSAPrivateKey) -> bytes:
-    return private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+def public_key(public_key_data: bytes) -> RSAPublicKey:
+    """Create public key using PEM format."""
+    return serialization.load_pem_public_key(  # pyright: ignore[reportReturnType]
+        public_key_data
     )
 
 

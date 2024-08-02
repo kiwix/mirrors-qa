@@ -1,11 +1,10 @@
 import datetime
 
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.cryptography import (
-    generate_public_key,
     get_public_key_fingerprint,
     serialize_public_key,
 )
@@ -31,13 +30,12 @@ def create_worker(
     session: OrmSession,
     worker_id: str,
     country_codes: list[str],
-    private_key: RSAPrivateKey,
+    public_key: RSAPublicKey,
 ) -> Worker:
-    """Creates a worker using RSA private key."""
+    """Creates a worker using RSA public key."""
     if get_worker_or_none(session, worker_id) is not None:
         raise DuplicatePrimaryKeyError(f"A worker with id {worker_id} already exists.")
 
-    public_key = generate_public_key(private_key)
     public_key_pkcs8 = serialize_public_key(public_key).decode(encoding="ascii")
     worker = Worker(
         id=worker_id,
