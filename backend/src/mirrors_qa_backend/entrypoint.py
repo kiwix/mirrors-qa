@@ -83,12 +83,12 @@ def main():
         CREATE_WORKER_CLI, help="Create a new worker.", parents=[worker_parser]
     )
     create_worker_cli.add_argument(
-        "private_key_file",
-        metavar="private-key-file",
+        "public_key_file",
+        metavar="public-key-file",
         type=argparse.FileType("r", encoding="ascii"),
         nargs="?",
         default=sys.stdin,
-        help="RSA private key file (default: stdin).",
+        help="RSA public key file (default: stdin).",
     )
 
     subparsers.add_parser(
@@ -115,7 +115,7 @@ def main():
         try:
             create_worker(
                 args.worker_id,
-                bytes(args.private_key_file.read(), encoding="ascii"),
+                bytes(args.public_key_file.read(), encoding="ascii"),
                 args.countries if args.countries else [],
             )
         except Exception as exc:

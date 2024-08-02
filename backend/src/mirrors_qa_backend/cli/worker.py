@@ -29,15 +29,15 @@ def get_country_mapping(country_codes: list[str]) -> dict[str, str]:
 
 
 def create_worker(
-    worker_id: str, private_key_data: bytes, initial_country_codes: list[str]
+    worker_id: str, public_key_data: bytes, initial_country_codes: list[str]
 ):
     """Create a worker in the DB.
 
     Assigns the countries for a worker to run tests from.
     """
     country_mapping = get_country_mapping(initial_country_codes)
-    private_key = serialization.load_pem_private_key(
-        private_key_data, password=None
+    public_key = serialization.load_pem_public_key(
+        public_key_data
     )  # pyright: ignore[reportReturnType]
 
     with Session.begin() as session:
@@ -48,7 +48,7 @@ def create_worker(
             session,
             worker_id,
             initial_country_codes,
-            private_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
+            public_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
         )
 
     logger.info(f"Created worker {worker_id} successfully")

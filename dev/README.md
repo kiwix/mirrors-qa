@@ -61,19 +61,24 @@ docker compose --profile worker up --build
     ```sh
     openssl genrsa -out id_rsa 2048
     ```
-    The key name `id_rsa` is used as a bind mount in the compose file.
+    The key name `id_rsa` is used as a bind mount in the compose file for the worker container.
+
+- Generate a public key for creating the worker on the database.
+    ```sh
+    openssl rsa -in id_rsa -pubout -out pubkey.pem
+    ```
 
 - Assuming the backend service is up (`docker compose up backend`), create a worker and assign them a list of countries to test for.
     If no countries are provided, all available countries in the DB wiil be assigned to the worker. You can update the countries using `mirrors-qa-backend update-worker`.
 
-    In this example, we create a worker named `test` to test for mirrors in France, United States and Canada using the private key file
-    named `id_rsa`.
+    In this example, we create a worker named `test` to test for mirrors in France, United States and Canada using the public key file
+    named `pubkey.pem`.
     ```sh
-    docker exec -i mirrors-qa-backend mirrors-qa-backend create-worker --countries=us,fr,ca test < ./id_rsa
+    docker exec -i mirrors-qa-backend mirrors-qa-backend create-worker --countries=us,fr,ca test < ./pubkey.pem
     ```
 - Set the name of the worker to the `WORKER_ID` variable in the `.env` file.
 
-- Start the services with the worker enabled using `docker compose up --profile worker up --build`
+- Start the services with the worker enabled using `docker compose --profile worker up --build`
 
 ## Environment variables
 
