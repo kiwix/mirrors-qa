@@ -58,6 +58,7 @@ def query_api(
         "POST": requests.post,
         "PATCH": requests.patch,
         "DELETE": requests.delete,
+        "PUT": requests.put,
     }.get(method.upper(), requests.get)
 
     resp = func(url, headers=req_headers, json=payload)
