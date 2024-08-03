@@ -101,11 +101,14 @@ def main():
 
     if args.cli_name == UPDATE_MIRRORS_CLI:
         try:
+            logger.debug("Updating list of mirrors...")
             update_mirrors()
         except Exception as exc:
             logger.error(f"error while updating mirrors: {exc!s}")
             sys.exit(1)
+        logger.info("Updated list of mirrors on database.")
     elif args.cli_name == SCHEDULER_CLI:
+        logger.debug("Starting scheduler task...")
         start_scheduler(
             args.scheduler_sleep_seconds,
             args.expire_tests_since,
@@ -113,6 +116,7 @@ def main():
         )
     elif args.cli_name == CREATE_WORKER_CLI:
         try:
+            logger.debug(f"Creating worker {args.worker_id!r}...")
             create_worker(
                 args.worker_id,
                 bytes(args.public_key_file.read(), encoding="ascii"),
@@ -121,8 +125,10 @@ def main():
         except Exception as exc:
             logger.error(f"error while creating worker: {exc!s}")
             sys.exit(1)
+        logger.info(f"Saved worker {args.worker_id!r} to database.")
     elif args.cli_name == UPDATE_WORKER_CLI:
         try:
+            logger.debug(f"Updating list of mirrors for {args.worker_id!r}")
             update_worker(
                 args.worker_id,
                 args.countries if args.countries else [],
@@ -130,6 +136,7 @@ def main():
         except Exception as exc:
             logger.error(f"error while updating worker: {exc!s}")
             sys.exit(1)
+        logger.info(f"Updated countries for worker {args.worker_id!r}")
     else:
         args.print_help()
 
