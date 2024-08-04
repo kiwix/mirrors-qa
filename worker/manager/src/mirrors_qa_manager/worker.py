@@ -2,6 +2,7 @@
 import datetime
 import json
 import random
+import re
 import shutil
 import signal
 import sys
@@ -94,17 +95,21 @@ class WorkerManager:
         return self.host_workdir / container_fpath.relative_to(Settings.WORKDIR_FPATH)
 
     def get_country_codes_from_config_files(self) -> list[str]:
-        """Get the ISO country codes of countries using configuration files.
+        """Get the ISO country codes using configuration files in base_dir.
 
         Finds all files ending with .conf and applies the following steps:
         - take the first two letters of the config filename.
-        - add to output list if first two letters of config are valid country codes
+        - add to output list if first two letters of config are valid country codes.
         """
+        conf_file_ptn = re.compile(r"^(?P<country_code>[a-z]{2})-")
         country_codes = set()
+
         for conf_file in self.base_dir.glob("*.conf"):
-            code = conf_file.name[:2]
-            if pycountry.countries.get(alpha_2=code):
-                country_codes.add(code)
+            if match := conf_file_ptn.search(conf_file.stem):
+                country_code = match.groupdict()["country_code"]
+                if pycountry.countries.get(alpha_2=country_code):
+                    country_codes.add(country_code)
+
         return list(country_codes)
 
     def copy_wireguard_conf_file(self, country_code: str | None = None) -> Path:
