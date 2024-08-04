@@ -3,9 +3,15 @@ from fastapi import APIRouter
 from fastapi import status as status_codes
 
 from mirrors_qa_backend.db.country import update_countries as update_db_countries
+from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
+from mirrors_qa_backend.db.worker import get_worker as get_db_worker
 from mirrors_qa_backend.db.worker import update_worker as update_db_worker
 from mirrors_qa_backend.routes.dependencies import CurrentWorker, DbSession
-from mirrors_qa_backend.routes.http_errors import BadRequestError, UnauthorizedError
+from mirrors_qa_backend.routes.http_errors import (
+    BadRequestError,
+    NotFoundError,
+    UnauthorizedError,
+)
 from mirrors_qa_backend.schemas import UpdateWorkerCountries, WorkerCountries
 from mirrors_qa_backend.serializer import serialize_country
 
@@ -21,13 +27,14 @@ router = APIRouter(prefix="/workers", tags=["workers"])
         }
     },
 )
-def list_countries(worker_id: str, current_worker: CurrentWorker) -> WorkerCountries:
-    if current_worker.id != worker_id:
-        raise UnauthorizedError(
-            "You do not have the required permissions to access this endpoint."
-        )
+def list_countries(session: DbSession, worker_id: str) -> WorkerCountries:
+    try:
+        worker = get_db_worker(session, worker_id)
+    except RecordDoesNotExistError as exc:
+        raise NotFoundError(str(exc)) from exc
+
     return WorkerCountries(
-        countries=[serialize_country(country) for country in current_worker.countries]
+        countries=[serialize_country(country) for country in worker.countries]
     )
 
 

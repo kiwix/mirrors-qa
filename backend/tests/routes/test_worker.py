@@ -15,10 +15,8 @@ def auth_headers(access_token: str) -> dict[str, str]:
     }
 
 
-def test_list_worker_countries(
-    worker: Worker, auth_headers: dict[str, str], client: TestClient
-) -> None:
-    response = client.get(f"/workers/{worker.id}/countries", headers=auth_headers)
+def test_list_worker_countries(worker: Worker, client: TestClient) -> None:
+    response = client.get(f"/workers/{worker.id}/countries")
     assert response.status_code == status_codes.HTTP_200_OK
 
     data = response.json()
@@ -46,13 +44,21 @@ def test_update_worker_with_non_existent_country_code(
     assert response.status_code == status_codes.HTTP_400_BAD_REQUEST
 
 
+@pytest.mark.parametrize(
+    ["country_codes"],
+    [
+        (["nz", "us", "ng", "fr", "ca", "be", "bg", "md"],),
+        (["ng"],),
+        ([],),
+    ],
+)
 def test_update_worker_countries(
     dbsession: OrmSession,
     worker: Worker,
+    country_codes: list[str],
     auth_headers: dict[str, str],
     client: TestClient,
 ) -> None:
-    country_codes = ["nz", "us", "ng", "fr", "ca", "be", "bg", "md"]
     response = client.put(
         f"/workers/{worker.id}/countries",
         headers=auth_headers,
