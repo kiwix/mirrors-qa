@@ -1,7 +1,6 @@
 import pycountry
 from cryptography.hazmat.primitives import serialization
 
-from mirrors_qa_backend import logger
 from mirrors_qa_backend.db import Session
 from mirrors_qa_backend.db.country import update_countries as update_db_countries
 from mirrors_qa_backend.db.worker import create_worker as create_db_worker
@@ -50,8 +49,6 @@ def create_worker(
             initial_country_codes,
             public_key,  # pyright: ignore [reportGeneralTypeIssues, reportArgumentType]
         )
-
-    logger.info(f"Created worker {worker_id} successfully")
 
 
 def update_worker(worker_id: str, country_codes: list[str]):
