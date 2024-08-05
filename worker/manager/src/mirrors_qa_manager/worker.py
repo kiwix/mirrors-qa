@@ -131,6 +131,7 @@ class WorkerManager:
                 self.wg_healthcheck_cmd,
             )
         except APIError:
+            logger.error("error whlie performing healthcheck: {exc!s}")
             return None
 
     def wg_healthcheck_till_healthy(self, conf_fpaths: list[Path]) -> ExecResult | None:
