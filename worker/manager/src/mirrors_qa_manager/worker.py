@@ -2,6 +2,7 @@
 import datetime
 import json
 import random
+import re
 import shutil
 import signal
 import sys
@@ -92,6 +93,24 @@ class WorkerManager:
     def get_host_fpath(self, container_fpath: Path) -> Path:
         """Determine the host path of a path in the container."""
         return self.host_workdir / container_fpath.relative_to(Settings.WORKDIR_FPATH)
+
+    def get_country_codes_from_config_files(self) -> list[str]:
+        """Get the ISO country codes using configuration files in base_dir.
+
+        Finds all files ending with .conf and applies the following steps:
+        - take the first two letters of the config filename.
+        - add to output list if first two letters of config are valid country codes.
+        """
+        conf_file_ptn = re.compile(r"^(?P<country_code>[a-z]{2})-")
+        country_codes = set()
+
+        for conf_file in self.base_dir.glob("*.conf"):
+            if match := conf_file_ptn.search(conf_file.stem):
+                country_code = match.groupdict()["country_code"]
+                if pycountry.countries.get(alpha_2=country_code):
+                    country_codes.add(country_code)
+
+        return list(country_codes)
 
     def copy_wireguard_conf_file(self, country_code: str | None = None) -> Path:
         """Path to copied-from-base-dir <country_code>.conf file in instance  directory.
@@ -233,6 +252,27 @@ class WorkerManager:
             "isp": ip_data["organization"],
         }
 
+    def update_countries_list(self):
+        """Update the list of countries from config files if there are any."""
+        country_codes = self.get_country_codes_from_config_files()
+        if not country_codes:
+            logger.info("No country codes inferred from configuration files.")
+            return
+
+        logger.info(
+            f"Found {len(country_codes)} country codes from configuration files."
+        )
+        logger.debug("Updating list of countries on Backend API.")
+        data = self.query_api(
+            f"/workers/{self.worker_id}/countries",
+            method="put",
+            payload={"country_codes": country_codes},
+        )
+        logger.info(
+            f"Updated the list of countries for worker to {len(data['countries'])} "
+            "countries."
+        )
+
     def fetch_tests(self) -> list[dict[str, Any]]:
         logger.debug("Fetching tasks from backend API")
 
@@ -268,6 +308,9 @@ class WorkerManager:
                     == 0
                 ):
                     self.wg_interface_status = WgInterfaceStatus.UP
+
+                # Update the worker list of countries using the configuration files
+                self.update_countries_list()
 
                 tests = self.fetch_tests()
                 for test in tests:

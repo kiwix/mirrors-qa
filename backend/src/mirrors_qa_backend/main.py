@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from mirrors_qa_backend.db import initialize_mirrors, upgrade_db_schema
-from mirrors_qa_backend.routes import auth, tests
+from mirrors_qa_backend.routes import auth, tests, worker
 
 
 @asynccontextmanager
@@ -18,6 +18,7 @@ def create_app(*, debug: bool = True):
 
     app.include_router(router=tests.router)
     app.include_router(router=auth.router)
+    app.include_router(router=worker.router)
 
     return app
 

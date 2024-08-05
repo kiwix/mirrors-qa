@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session as OrmSession
 from mirrors_qa_backend import schemas
 from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import Session
+from mirrors_qa_backend.db.country import create_country
 from mirrors_qa_backend.db.models import Base, Mirror, Test, Worker
+from mirrors_qa_backend.db.worker import update_worker_countries
 from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.serializer import serialize_mirror
 
@@ -125,6 +127,12 @@ def worker(public_key: RSAPublicKey, dbsession: OrmSession) -> Worker:
         pubkey_pkcs8=pubkey_pkcs8,
     )
     dbsession.add(worker)
+
+    country_data = {"fr": "France", "ca": "Canada"}
+    for country_code, country_name in country_data.items():
+        create_country(dbsession, country_code=country_code, country_name=country_name)
+    update_worker_countries(dbsession, worker, list(country_data.keys()))
+
     return worker
 
 

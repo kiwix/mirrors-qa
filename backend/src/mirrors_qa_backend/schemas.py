@@ -1,9 +1,10 @@
 import datetime
 import math
 from ipaddress import IPv4Address
+from typing import Annotated
 
 import pydantic
-from pydantic import UUID4, ConfigDict
+from pydantic import UUID4, ConfigDict, Field
 
 from mirrors_qa_backend.enums import StatusEnum
 
@@ -54,6 +55,22 @@ class Paginator(BaseModel):
     current_page: int | None = None
     first_page: int | None = None
     last_page: int | None = None
+
+
+ISOCountryCode = Annotated[str, Field(min_length=2, max_length=2)]
+
+
+class Country(BaseModel):
+    code: ISOCountryCode  # two-letter country code as defined in ISO 3166-1
+    name: str  # full name of the country (in English)
+
+
+class WorkerCountries(BaseModel):
+    countries: list[Country]
+
+
+class UpdateWorkerCountries(BaseModel):
+    country_codes: list[ISOCountryCode]
 
 
 class TestsList(BaseModel):
