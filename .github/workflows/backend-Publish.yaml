@@ -29,3 +29,9 @@ jobs:
             GHCRIO_TOKEN=${{ secrets.GHCR_TOKEN }}
           repo_description: auto
           repo_overview: auto
+      - name: Deploy API changes on k8s
+        uses: actions-hub/kubectl@master
+        env:
+          KUBE_CONFIG: ${{ secrets.MIRRORSQA_KUBE_CONFIG }}
+        with:
+          args: rollout restart deployments api-deployment scheduler-deployment -n mirrors-qa
