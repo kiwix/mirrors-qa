@@ -142,7 +142,7 @@ def exec_command(
     result = container.exec_run(cmd)
     if result.exit_code != 0:
         raise APIError(
-            f"Unable to execute command {cmd} in {container.name}, "
+            f"unable to execute command {cmd} in {container.name}, "
             f"result: {result.output}, status: {result.exit_code}"
         )
     return result  # pyright: ignore[reportReturnType]
