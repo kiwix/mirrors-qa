@@ -134,7 +134,9 @@ class WorkerManager:
             logger.error("error whlie performing healthcheck: {exc!s}")
             return None
 
-    def wg_healthcheck_untill_healthy(self, conf_fpaths: list[Path]) -> ExecResult | None:
+    def wg_healthcheck_untill_healthy(
+        self, conf_fpaths: list[Path]
+    ) -> ExecResult | None:
         """Try wg healthcheck till status is healthy using configuration files."""
         for conf_fpath in conf_fpaths:
             # Copy the configuration file to the confs folder
