@@ -134,7 +134,7 @@ class WorkerManager:
             logger.error("error whlie performing healthcheck: {exc!s}")
             return None
 
-    def wg_healthcheck_till_healthy(self, conf_fpaths: list[Path]) -> ExecResult | None:
+    def wg_healthcheck_untill_healthy(self, conf_fpaths: list[Path]) -> ExecResult | None:
         """Try wg healthcheck till status is healthy using configuration files."""
         for conf_fpath in conf_fpaths:
             # Copy the configuration file to the confs folder
@@ -331,7 +331,7 @@ class WorkerManager:
                 # Ensure the wireguard container is still up
                 if not self.wg_container_is_healthy():
                     # Try all the availalbe configuration files till container is up.
-                    if self.wg_healthcheck_till_healthy(list(conf_fpaths)) is None:
+                    if self.wg_healthcheck_untill_healthy(list(conf_fpaths)) is None:
                         error_message = "Unable to start wireguard container."
                         raise Exception(error_message)
 
@@ -358,7 +358,7 @@ class WorkerManager:
                         f"Reconfiguring wireguard network interface for {country_code}"
                     )
 
-                    healthcheck_result = self.wg_healthcheck_till_healthy(conf_fpaths)
+                    healthcheck_result = self.wg_healthcheck_untill_healthy(conf_fpaths)
                     if healthcheck_result is None:
                         logger.error(
                             "error while pefroming wireguard healthcheck for "
