@@ -44,8 +44,8 @@ services:
     container_name: mirrors-qa-scheduler
     environment:
       POSTGRES_URI: postgresql+psycopg://mirrors_qa:mirrors_qa@postgresdb:5432/mirrors_qa
-      IDLE_WORKER_DURATION: 10m
-      SCHEDULER_SLEEP_DURATION: 30m
+      IDLE_WORKER_DURATION: 15m
+      SCHEDULER_SLEEP_DURATION: 15m
       EXPIRE_TEST_DURATION: 1h
       DEBUG: true
     command: mirrors-qa-backend scheduler
