@@ -311,10 +311,10 @@ class WorkerManager:
                 f"Fetched page {current_page} of {last_page} of pending tests."
             )
 
+            yield from data["tests"]
+
             if current_page == last_page:
                 raise StopIteration
-
-            yield from data["tests"]
 
     def sleep(self) -> None:
         logger.info(f"Sleeping for {Settings.SLEEP_SECONDS}s")
