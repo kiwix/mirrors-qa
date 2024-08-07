@@ -300,7 +300,7 @@ class WorkerManager:
             data = self.query_api(f"/tests?{params}")
             nb_tests = data["metadata"]["page_size"]
             if nb_tests == 0:  # No more pending tests to fetch
-                raise StopIteration
+                break
 
             logger.info(f"Fetched {nb_tests} test(s) from Backend API")
 
@@ -314,7 +314,7 @@ class WorkerManager:
             yield from data["tests"]
 
             if current_page == last_page:
-                raise StopIteration
+                break
 
     def sleep(self) -> None:
         logger.info(f"Sleeping for {Settings.SLEEP_SECONDS}s")
