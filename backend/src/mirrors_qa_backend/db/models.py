@@ -64,6 +64,21 @@ class WorkerCountry(Base):
     )
 
 
+class Region(Base):
+    """Continental region."""
+
+    __tablename__ = "region"
+
+    code: Mapped[str] = mapped_column(primary_key=True)  # continent code
+    name: Mapped[str]  # continent name
+    countries: Mapped[list[Country]] = relationship(
+        back_populates="region", init=False, repr=False
+    )
+    mirrors: Mapped[list[Mirror]] = relationship(
+        back_populates="region", init=False, repr=False
+    )
+
+
 class Country(Base):
     """Country where a worker runs tests for a mirror."""
 
@@ -74,6 +89,17 @@ class Country(Base):
     )  # two-letter country codes as defined in ISO 3166-1
 
     name: Mapped[str]  # full name of the country (in English)
+    region_code: Mapped[str | None] = mapped_column(
+        ForeignKey("region.code"), init=False, default=None
+    )
+
+    region: Mapped[Region | None] = relationship(
+        back_populates="countries", init=False, repr=False
+    )
+
+    mirrors: Mapped[list[Mirror]] = relationship(
+        back_populates="country", init=False, repr=False
+    )
 
     workers: Mapped[list[Worker]] = relationship(
         back_populates="countries",
@@ -91,8 +117,13 @@ class Mirror(Base):
     id: Mapped[str] = mapped_column(primary_key=True)  # hostname of a mirror URL
     base_url: Mapped[str]
     enabled: Mapped[bool]
+    region_code: Mapped[str | None] = mapped_column(
+        ForeignKey("region.code"), init=False, default=None
+    )
+    country_code: Mapped[str | None] = mapped_column(
+        ForeignKey("country.code"), init=False, default=None
+    )
     # metadata of a mirror from MirroBrain (https://mirrorbrain-docs.readthedocs.io/en/latest/mirrors.html#displaying-details-about-a-mirror)
-    region: Mapped[str | None] = mapped_column(default=None)
     asn: Mapped[str | None] = mapped_column(default=None)
     score: Mapped[int | None] = mapped_column(default=None)
     latitude: Mapped[float | None] = mapped_column(default=None)
@@ -104,6 +135,14 @@ class Mirror(Base):
 
     tests: Mapped[list[Test]] = relationship(
         back_populates="mirror", init=False, repr=False
+    )
+
+    country: Mapped[Country | None] = relationship(
+        back_populates="mirrors", init=False, repr=False
+    )
+
+    region: Mapped[Region | None] = relationship(
+        back_populates="mirrors", init=False, repr=False
     )
 
     __table_args__ = (UniqueConstraint("base_url"),)

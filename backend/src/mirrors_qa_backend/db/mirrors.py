@@ -4,8 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend import logger, schemas
+from mirrors_qa_backend.db.country import get_country_or_none
 from mirrors_qa_backend.db.exceptions import EmptyMirrorsError, RecordDoesNotExistError
 from mirrors_qa_backend.db.models import Mirror
+from mirrors_qa_backend.db.region import get_region_or_none
 
 
 @dataclass
@@ -14,6 +16,17 @@ class MirrorsUpdateResult:
 
     nb_mirrors_added: int = 0
     nb_mirrors_disabled: int = 0
+
+
+def update_mirror_country(
+    session: OrmSession, country_code: str, mirror: Mirror
+) -> Mirror:
+    logger.debug("Updating mirror country information.")
+    mirror.country = get_country_or_none(session, country_code)
+    if mirror.country and mirror.country.region_code:
+        mirror.region = get_region_or_none(session, mirror.country.region_code)
+    session.add(mirror)
+    return mirror
 
 
 def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
@@ -27,7 +40,6 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
             id=mirror.id,
             base_url=mirror.base_url,
             enabled=mirror.enabled,
-            region=mirror.region,
             asn=mirror.asn,
             score=mirror.score,
             latitude=mirror.latitude,
@@ -37,7 +49,12 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
             as_only=mirror.as_only,
             other_countries=mirror.other_countries,
         )
+
         session.add(db_mirror)
+
+        if mirror.country_code:
+            update_mirror_country(session, mirror.country_code, db_mirror)
+
         logger.debug(f"Registered new mirror: {db_mirror.id}.")
         nb_created += 1
     return nb_created
@@ -90,6 +107,13 @@ def create_or_update_mirror_status(
             db_mirror.enabled = True
             session.add(db_mirror)
             result.nb_mirrors_added += 1
+
+        # New mirrors DB model contain country data. As such, we update the
+        # country information regardless of the status update.
+        if db_mirror_id in current_mirrors:
+            country_code = current_mirrors[db_mirror_id].country_code
+            if country_code:
+                update_mirror_country(session, country_code, db_mirror)
     return result
 
 

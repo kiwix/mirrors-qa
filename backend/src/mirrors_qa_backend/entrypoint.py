@@ -6,6 +6,10 @@ from humanfriendly import parse_timespan
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.__about__ import __version__
+from mirrors_qa_backend.cli.country import (
+    create_regions_and_countries,
+    extract_country_regions_from_csv,
+)
 from mirrors_qa_backend.cli.mirrors import update_mirrors
 from mirrors_qa_backend.cli.scheduler import main as start_scheduler
 from mirrors_qa_backend.cli.worker import create_worker, update_worker
@@ -15,6 +19,7 @@ UPDATE_MIRRORS_CLI = "update-mirrors"
 CREATE_WORKER_CLI = "create-worker"
 UPDATE_WORKER_CLI = "update-worker"
 SCHEDULER_CLI = "scheduler"
+CREATE_COUNTRY_REGIONS_CLI = "create-countries"
 
 
 def main():
@@ -95,6 +100,18 @@ def main():
         UPDATE_WORKER_CLI, help="Update a worker", parents=[worker_parser]
     )
 
+    create_country_regions_cli = subparsers.add_parser(
+        CREATE_COUNTRY_REGIONS_CLI, help="Create countries and associated regions."
+    )
+    create_country_regions_cli.add_argument(
+        "country_region_csv_file",
+        metavar="csv-file",
+        type=argparse.FileType("r", encoding="utf-8"),
+        nargs="?",
+        default=sys.stdin,
+        help="CSV file containing countries and associated regions (default: stdin).",
+    )
+
     args = parser.parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
@@ -137,6 +154,19 @@ def main():
             logger.error(f"error while updating worker: {exc!s}")
             sys.exit(1)
         logger.info(f"Updated countries for worker {args.worker_id!r}")
+    elif args.cli_name == CREATE_COUNTRY_REGIONS_CLI:
+        try:
+            logger.debug("Creating regions and associated countries.")
+
+            create_regions_and_countries(
+                extract_country_regions_from_csv(
+                    args.country_region_csv_file.readlines()
+                )
+            )
+        except Exception as exc:
+            logger.error(f"error while creating regions: {exc!s}")
+            sys.exit(1)
+        logger.info("Created regions and associated countries.")
     else:
         args.print_help()
 
