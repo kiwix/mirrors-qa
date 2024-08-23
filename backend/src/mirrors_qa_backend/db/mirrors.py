@@ -1,13 +1,18 @@
 from dataclasses import dataclass
+from itertools import chain
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend import logger, schemas
-from mirrors_qa_backend.db.country import get_country_or_none
+from mirrors_qa_backend.db.country import get_country, get_country_or_none
 from mirrors_qa_backend.db.exceptions import EmptyMirrorsError, RecordDoesNotExistError
 from mirrors_qa_backend.db.models import Mirror
-from mirrors_qa_backend.db.region import get_region_or_none
+from mirrors_qa_backend.db.region import (
+    get_countries_for,
+    get_region,
+    get_region_or_none,
+)
 
 
 @dataclass
@@ -18,10 +23,14 @@ class MirrorsUpdateResult:
     nb_mirrors_disabled: int = 0
 
 
-def update_mirror_country(
+def _update_mirror_country_and_region(
     session: OrmSession, country_code: str, mirror: Mirror
 ) -> Mirror:
-    logger.debug("Updating mirror country information.")
+    """Update the mirror country and region using the country code if they exist.
+
+    Used during mirror list update to set region and country as these fields
+    were missing in old DB schema.
+    """
     mirror.country = get_country_or_none(session, country_code)
     if mirror.country and mirror.country.region_code:
         mirror.region = get_region_or_none(session, mirror.country.region_code)
@@ -53,7 +62,7 @@ def create_mirrors(session: OrmSession, mirrors: list[schemas.Mirror]) -> int:
         session.add(db_mirror)
 
         if mirror.country_code:
-            update_mirror_country(session, mirror.country_code, db_mirror)
+            _update_mirror_country_and_region(session, mirror.country_code, db_mirror)
 
         logger.debug(f"Registered new mirror: {db_mirror.id}.")
         nb_created += 1
@@ -113,7 +122,7 @@ def create_or_update_mirror_status(
         if db_mirror_id in current_mirrors:
             country_code = current_mirrors[db_mirror_id].country_code
             if country_code:
-                update_mirror_country(session, country_code, db_mirror)
+                _update_mirror_country_and_region(session, country_code, db_mirror)
     return result
 
 
@@ -132,3 +141,62 @@ def get_enabled_mirrors(session: OrmSession) -> list[Mirror]:
             select(Mirror).where(Mirror.enabled == True)  # noqa: E712
         ).all()
     )
+
+
+def update_mirror_countries_from_regions(
+    session: OrmSession, mirror: Mirror, region_codes: set[str]
+) -> Mirror:
+    """Update the list of other countries for a mirror with countries from region codes.
+
+    Sets the list of other countries to empty if no regions are provided.
+
+    Because otherCountries overrides the mirror region and country choice as per
+    MirroBrain configuration, the list of countries in this mirror's region is
+    added to the list.
+    """
+    if not region_codes:
+        mirror.other_countries = []
+        session.add(mirror)
+        return mirror
+
+    if mirror.region_code:
+        region_codes.add(mirror.region_code)
+
+    country_codes = [
+        country.code
+        for country in chain.from_iterable(
+            get_countries_for(session, region_code) for region_code in region_codes
+        )
+    ]
+    if not country_codes:
+        raise ValueError("No countries found in provided regions.")
+
+    mirror.other_countries = country_codes
+    session.add(mirror)
+    return mirror
+
+
+def update_mirror_region(
+    session: OrmSession, mirror: Mirror, region_code: str
+) -> Mirror:
+    """Updates the region the mirror server is located.
+
+    Assumes the region exists in the DB.
+    This does not update the country the mirror is located in.
+    """
+    mirror.region = get_region(session, region_code)
+    session.add(mirror)
+    return mirror
+
+
+def update_mirror_country(
+    session: OrmSession, mirror: Mirror, country_code: str
+) -> Mirror:
+    """Update the country the mirror server is located.
+
+    Assumes the country exists in the DB.
+    This does not update the region the mirror is located in.
+    """
+    mirror.country = get_country(session, country_code)
+    session.add(mirror)
+    return mirror

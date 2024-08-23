@@ -16,7 +16,7 @@ from mirrors_qa_backend import schemas
 from mirrors_qa_backend.cryptography import sign_message
 from mirrors_qa_backend.db import Session
 from mirrors_qa_backend.db.country import create_country
-from mirrors_qa_backend.db.models import Base, Mirror, Test, Worker
+from mirrors_qa_backend.db.models import Base, Country, Mirror, Region, Test, Worker
 from mirrors_qa_backend.db.worker import update_worker_countries
 from mirrors_qa_backend.enums import StatusEnum
 from mirrors_qa_backend.serializer import serialize_mirror
@@ -188,3 +188,39 @@ def new_schema_mirror() -> schemas.Mirror:
         as_only=None,
         other_countries=None,
     )
+
+
+@pytest.fixture
+def africa_region(dbsession: OrmSession) -> Region:
+    """Set up a region in Africa and add some default countries."""
+    region = Region(code="af", name="Africa")
+    countries = [
+        Country(code="ng", name="Nigeria"),
+    ]
+    region.countries = countries
+    dbsession.add(region)
+    return region
+
+
+@pytest.fixture
+def europe_region(dbsession: OrmSession) -> Region:
+    """Set up a region in Europe and add some default countries."""
+    region = Region(code="eu", name="Europe")
+    countries = [
+        Country(code="fr", name="France"),
+    ]
+    region.countries = countries
+    dbsession.add(region)
+    return region
+
+
+@pytest.fixture
+def asia_region(dbsession: OrmSession) -> Region:
+    """Set up a region in Asia and add some default countries."""
+    region = Region(code="as", name="Asia")
+    countries = [
+        Country(code="jp", name="Japan"),
+    ]
+    region.countries = countries
+    dbsession.add(region)
+    return region

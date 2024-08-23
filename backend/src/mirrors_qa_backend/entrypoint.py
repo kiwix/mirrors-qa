@@ -10,12 +10,18 @@ from mirrors_qa_backend.cli.country import (
     create_regions_and_countries,
     extract_country_regions_from_csv,
 )
-from mirrors_qa_backend.cli.mirrors import update_mirrors
+from mirrors_qa_backend.cli.mirrors import (
+    update_mirror_country,
+    update_mirror_other_countries,
+    update_mirror_region,
+    update_mirrors,
+)
 from mirrors_qa_backend.cli.scheduler import main as start_scheduler
 from mirrors_qa_backend.cli.worker import create_worker, update_worker
 from mirrors_qa_backend.settings.scheduler import SchedulerSettings
 
 UPDATE_MIRRORS_CLI = "update-mirrors"
+UPDATE_MIRROR_CLI = "update-mirror"
 CREATE_WORKER_CLI = "create-worker"
 UPDATE_WORKER_CLI = "update-worker"
 SCHEDULER_CLI = "scheduler"
@@ -115,6 +121,38 @@ def main():
         ),
     )
 
+    update_mirror_cli = subparsers.add_parser(
+        UPDATE_MIRROR_CLI, help="Update details of a mirror."
+    )
+    update_mirror_cli.add_argument(
+        "mirror_id", help="ID of the mirror.", metavar="mirror-id"
+    )
+    update_mirror_cli_opts = update_mirror_cli.add_mutually_exclusive_group(
+        required=True
+    )
+    update_mirror_cli_opts.add_argument(
+        "--regions",
+        help=(
+            "Comma seperated two-letter region codes whose countries "
+            "should be sent to this mirror. The mirror's default region "
+            "is added to this list.\nSet to empty to remove additional "
+            "countries."
+        ),
+        type=lambda regions: regions.split(","),
+        dest="regions",
+        metavar="codes",
+    )
+    update_mirror_cli_opts.add_argument(
+        "--region",
+        help="Two-letter region code of where the mirror server is located.",
+        metavar="code",
+    )
+    update_mirror_cli_opts.add_argument(
+        "--country",
+        help="ISO 3166-1 alpha-2 country code of where the mirror server is located.",
+        metavar="code",
+    )
+
     args = parser.parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
@@ -170,6 +208,36 @@ def main():
             logger.error(f"error while creating regions: {exc!s}")
             sys.exit(1)
         logger.info("Created regions and associated countries.")
+    elif args.cli_name == UPDATE_MIRROR_CLI:
+        if args.regions:
+            try:
+                logger.debug("Updating mirror region.")
+                update_mirror_other_countries(
+                    args.mirror_id, region_codes={code for code in args.regions if code}
+                )
+            except Exception as exc:
+                logger.error(f"error whle updating region for mirror: {exc!s}")
+                sys.exit(1)
+            logger.info("Updated additional regions for mirror.")
+        elif args.region:
+            logger.debug("Updating default region for mirror.")
+            try:
+                update_mirror_region(args.mirror_id, args.region)
+            except Exception as exc:
+                logger.error(f"error while updating default region for mirror: {exc!s}")
+                sys.exit(1)
+            logger.info("Updated default region for mirror")
+        elif args.country:
+            logger.debug("Updating default country for mirror.")
+            try:
+                update_mirror_country(args.mirror_id, args.country)
+            except Exception as exc:
+                logger.error(
+                    f"error while updating default country for mirror: {exc!s}"
+                )
+                sys.exit(1)
+            logger.info("Updated default country for mirror.")
+
     else:
         args.print_help()
 
