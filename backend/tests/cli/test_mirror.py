@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session as OrmSession
 
 from mirrors_qa_backend.db import models
-from mirrors_qa_backend.db.mirrors import update_mirror_country
+from mirrors_qa_backend.db.mirrors import (
+    _update_mirror_country_and_region,  # pyright: ignore[reportPrivateUsage]
+)
 
 
-def test_update_mirror_region_and_country(
+def test_update_mirror_country_and_region(
     dbsession: OrmSession, db_mirror: models.Mirror
 ):
 
@@ -16,7 +18,7 @@ def test_update_mirror_region_and_country(
     country.region = region
     dbsession.add(country)
 
-    db_mirror = update_mirror_country(dbsession, country.code, db_mirror)
+    db_mirror = _update_mirror_country_and_region(dbsession, country.code, db_mirror)
     assert db_mirror.country is not None
     assert db_mirror.country == country
     assert db_mirror.region == region
