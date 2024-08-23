@@ -109,7 +109,10 @@ def main():
         type=argparse.FileType("r", encoding="utf-8"),
         nargs="?",
         default=sys.stdin,
-        help="CSV file containing countries and associated regions (default: stdin).",
+        help=(
+            "CSV file containing countries and associated regions "
+            "(format: Maxmind's GeoIPLite Country Locations csv) (default: stdin)."
+        ),
     )
 
     args = parser.parse_args()

@@ -6,7 +6,7 @@ from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.db.models import Country, Region
 
 
-def get_countries(session: OrmSession, region_code: str) -> list[Country]:
+def get_countries_for(session: OrmSession, region_code: str) -> list[Country]:
     """Get countries belonging to the provided region."""
 
     return list(

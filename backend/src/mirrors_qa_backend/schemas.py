@@ -13,7 +13,7 @@ class BaseModel(pydantic.BaseModel):
     model_config = ConfigDict(use_enum_values=True, from_attributes=True)
 
 
-ISO3166AlphaCode = Annotated[str, Field(min_length=2, max_length=2)]
+ISO3166Alpha2Code = Annotated[str, Field(min_length=2, max_length=2)]
 
 
 class Mirror(BaseModel):
@@ -28,8 +28,8 @@ class Mirror(BaseModel):
     country_only: bool | None = None
     region_only: bool | None = None
     as_only: bool | None = None
-    country_code: ISO3166AlphaCode | None = None
-    other_countries: list[ISO3166AlphaCode] | None = None
+    country_code: ISO3166Alpha2Code | None = None
+    other_countries: list[ISO3166Alpha2Code] | None = None
 
 
 class UpdateTestModel(BaseModel):
@@ -62,12 +62,12 @@ class Paginator(BaseModel):
 
 
 class Region(BaseModel):
-    code: ISO3166AlphaCode
+    code: ISO3166Alpha2Code
     name: str
 
 
 class Country(BaseModel):
-    code: ISO3166AlphaCode  # two-letter country code as defined in ISO 3166-1
+    code: ISO3166Alpha2Code  # two-letter country code as defined in ISO 3166-1
     name: str  # full name of the country (in English)
     region: Region | None = None
 
@@ -77,7 +77,7 @@ class WorkerCountries(BaseModel):
 
 
 class UpdateWorkerCountries(BaseModel):
-    country_codes: list[ISO3166AlphaCode]
+    country_codes: list[ISO3166Alpha2Code]
 
 
 class TestsList(BaseModel):
