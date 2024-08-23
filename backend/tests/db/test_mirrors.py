@@ -64,7 +64,6 @@ def test_re_enable_existing_mirror(
         id="mirrors.dotsrc.org",
         base_url="https://mirrors.dotsrc.org/kiwix/",
         enabled=False,
-        region=None,
         asn=None,
         score=None,
         latitude=None,

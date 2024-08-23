@@ -154,7 +154,6 @@ def db_mirror(dbsession: OrmSession) -> Mirror:
         id="mirror-sites-in.mblibrary.info",
         base_url="https://mirror-sites-in.mblibrary.info/mirror-sites/download.kiwix.org/",
         enabled=True,
-        region=None,
         asn=None,
         score=None,
         latitude=None,

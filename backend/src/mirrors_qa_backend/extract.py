@@ -51,6 +51,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
         hostname: Any = urlsplit(
             base_url
         ).netloc  # pyright: ignore [reportUnknownMemberType]
+        country_code = row.find("img")["alt"].lower()
         if hostname in Settings.MIRRORS_EXCLUSION_LIST:
             continue
         mirrors.append(
@@ -58,6 +59,7 @@ def get_current_mirrors() -> list[schemas.Mirror]:
                 id=hostname,
                 base_url=base_url,
                 enabled=True,
+                country_code=country_code,
             )
         )
     return mirrors
