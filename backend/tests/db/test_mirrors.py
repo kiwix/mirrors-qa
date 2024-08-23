@@ -127,16 +127,13 @@ def test_update_mirror_countries_from_regions(
 ):
 
     regions = [asia_region, africa_region, europe_region]
-    expected_country_codes = set()
-    region_codes = set()
+    expected_country_codes: set[str] = set()
+    region_codes: set[str] = set()
 
     for region in regions:
         region_codes.add(region.code)
         for country in region.countries:
             expected_country_codes.add(country.code)
-
-    if db_mirror.country:
-        expected_country_codes.add(db_mirror.country_code)
 
     db_mirror = update_mirror_countries_from_regions(dbsession, db_mirror, region_codes)
 
