@@ -113,11 +113,9 @@ def main():
         "country_region_csv_file",
         metavar="csv-file",
         type=argparse.FileType("r", encoding="utf-8"),
-        nargs="?",
-        default=sys.stdin,
         help=(
             "CSV file containing countries and associated regions "
-            "(format: Maxmind's GeoIPLite Country Locations csv) (default: stdin)."
+            "(format: Maxmind's GeoIPLite Country Locations csv)."
         ),
     )
 
