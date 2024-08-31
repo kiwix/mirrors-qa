@@ -1,4 +1,4 @@
-name: Worker Task QA
+name: ProtonVPN Wireguard Config Downloader QA
 
 on:
   pull_request:
