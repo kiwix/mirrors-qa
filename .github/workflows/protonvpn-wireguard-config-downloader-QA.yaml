@@ -1,0 +1,40 @@
+name: Worker Task QA
+
+on:
+  pull_request:
+  push:
+    paths:
+      - 'protonvpn-wireguard-config-downloader/**'
+    branches:
+      - main
+
+jobs:
+
+  check-qa:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version-file: protonvpn-wireguard-config-downloader/pyproject.toml
+          architecture: x64
+
+      - name: Install dependencies (and project)
+        working-directory: worker/task
+        run: |
+          pip install -U pip
+          pip install -e .[lint,scripts,test,check]
+
+      - name: Check black formatting
+        working-directory: protonvpn-wireguard-config-downloader
+        run: inv lint-black
+
+      - name: Check ruff
+        working-directory: protonvpn-wireguard-config-downloader
+        run: inv lint-ruff
+
+      - name: Check pyright
+        working-directory: protonvpn-wireguard-config-downloader
+        run: inv check-pyright
