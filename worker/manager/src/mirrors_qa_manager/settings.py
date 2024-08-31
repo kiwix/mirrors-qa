@@ -40,6 +40,7 @@ class Settings:
     WIREGUARD_CONTAINER_NAME = getenv(
         "WIREGUARD_CONTAINER_NAME", default="mirrors-qa-wireguard"
     )
+    WIREGUARD_PORT = int(getenv("WIREGUARD_PORT", default=51820))
     # Optional path for loading kernel modules for wireguard container
     WIREGUARD_KERNEL_MODULES_FPATH = Path(
         getenv("WIREGUARD_KERNEL_MODULES", default="/lib/modules")

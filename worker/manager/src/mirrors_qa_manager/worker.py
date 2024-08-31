@@ -7,7 +7,7 @@ import shutil
 import signal
 import sys
 import time
-from collections.abc import Iterable
+from collections.abc import Generator
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -131,8 +131,8 @@ class WorkerManager:
                 Settings.WIREGUARD_CONTAINER_NAME,
                 self.wg_healthcheck_cmd,
             )
-        except APIError:
-            logger.error("error whlie performing healthcheck: {exc!s}")
+        except APIError as exc:
+            logger.error(f"error whlie performing healthcheck: {exc!s}")
             return None
 
     def wg_healthcheck_untill_healthy(
@@ -201,7 +201,9 @@ class WorkerManager:
                 "timeout": Settings.WIREGUARD_HEALTHCHECK_TIMEOUT_NANOSECONDS,
                 "retries": Settings.WIREGUARD_HEALTHCHECK_RETRIES,
             },
-            ports={"51820/udp": None},  # Let the host assign a random port
+            ports={
+                f"{Settings.WIREGUARD_PORT}/udp": None
+            },  # Let the host assign a random port
             sysctls={"net.ipv4.conf.all.src_valid_mark": 1},
             environment={
                 "PUID": 1000,
@@ -292,7 +294,7 @@ class WorkerManager:
             "countries."
         )
 
-    def fetch_tests(self) -> Iterable[dict[str, str]]:
+    def fetch_tests(self) -> Generator[dict[str, str], None, None]:
         logger.debug("Fetching tasks from backend API")
         # Fetch tasks that were assigned to the worker that haven't been expired
         params = urlencode({"worker_id": self.worker_id, "status": "PENDING"})
