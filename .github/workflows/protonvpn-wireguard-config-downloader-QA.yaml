@@ -22,7 +22,7 @@ jobs:
           architecture: x64
 
       - name: Install dependencies (and project)
-        working-directory: worker/task
+        working-directory: protonvpn-wireguard-config-downloader
         run: |
           pip install -U pip
           pip install -e .[lint,scripts,test,check]
