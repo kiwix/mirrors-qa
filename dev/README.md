@@ -123,6 +123,7 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `DOCKER_API_RETRIES`: how many times to retry requests to the Docker daemon
 - `DOCKER_API_RETRY_DURATION`: how long to wait before retrying a failed request
 - `WIREGUARD_IMAGE`
+- `WIREGUARD_PORT`: port for routing wireguard traffic in the wireguard container. This is not the exposed port.
 - `WIREGUARD_KERNEL_MODULES`: where to load wireguard kernel modules from (default `/lib/modules`)
 - `WIREGUARD_HEALTHCHECK_INTERVAL_SECONDS`
 - `WIREGUARD_HEALTHCHECK_TIMEOUT_SECONDS`
