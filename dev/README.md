@@ -131,6 +131,12 @@ The `backend` code houses the `scheduler` and the `RESTful API`. The following e
 - `TASK_WORKER_IMAGE`
 - `TEST_FILE_PATH`: location of file to run download speed test
 
-## task-worker
+### task-worker
 
 - `REQUESTS_TIMEOUT_SECONDS`: how many seconds beore a request times out
+
+## Loading the Performance Matrix Functions
+
+```sh
+docker exec -i mirrors-qa-postgresdb psql -d mirrors_qa -U mirrors_qa < performance_matrix.sql
+```
