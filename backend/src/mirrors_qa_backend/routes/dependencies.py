@@ -16,15 +16,12 @@ from mirrors_qa_backend.db.worker import get_worker
 from mirrors_qa_backend.routes.http_errors import NotFoundError, UnauthorizedError
 from mirrors_qa_backend.settings.api import APISettings
 
-DbSession = Annotated[Session, Depends(gen_dbsession)]
-
 security = HTTPBearer(description="Access Token")
-AuthorizationCredentials = Annotated[HTTPAuthorizationCredentials, Depends(security)]
 
 
 def get_current_worker(
-    session: DbSession,
-    authorization: AuthorizationCredentials,
+    session: Annotated[Session, Depends(gen_dbsession)],
+    authorization: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> models.Worker:
     token = authorization.credentials
     try:
@@ -51,7 +48,10 @@ def get_current_worker(
 CurrentWorker = Annotated[models.Worker, Depends(get_current_worker)]
 
 
-def get_test(session: DbSession, test_id: Annotated[UUID4, Path()]) -> models.Test:
+def get_test(
+    session: Annotated[Session, Depends(gen_dbsession)],
+    test_id: Annotated[UUID4, Path()],
+) -> models.Test:
     """Fetches the test specified in the request."""
     try:
         test = db_get_test(session, test_id)

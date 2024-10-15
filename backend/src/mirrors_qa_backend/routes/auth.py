@@ -3,14 +3,15 @@ import binascii
 import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Depends, Header
+from sqlalchemy.orm import Session
 
 from mirrors_qa_backend import logger
 from mirrors_qa_backend.cryptography import verify_signed_message
+from mirrors_qa_backend.db import gen_dbsession
 from mirrors_qa_backend.db.exceptions import RecordDoesNotExistError
 from mirrors_qa_backend.db.worker import get_worker
 from mirrors_qa_backend.exceptions import PEMPublicKeyLoadError
-from mirrors_qa_backend.routes.dependencies import DbSession
 from mirrors_qa_backend.routes.http_errors import (
     BadRequestError,
     ForbiddenError,
@@ -25,7 +26,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/authenticate")
 def authenticate_worker(
-    session: DbSession,
+    session: Annotated[Session, Depends(gen_dbsession)],
     x_sshauth_message: Annotated[
         str,
         Header(description="message (format): worker_id:timestamp (UTC ISO)"),
