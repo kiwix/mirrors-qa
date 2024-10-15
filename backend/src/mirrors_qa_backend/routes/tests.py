@@ -2,15 +2,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from fastapi import status as status_codes
+from sqlalchemy.orm import Session
 
 from mirrors_qa_backend import schemas
+from mirrors_qa_backend.db import gen_dbsession
 from mirrors_qa_backend.db.tests import list_tests as db_list_tests
 from mirrors_qa_backend.db.tests import update_test as update_test_model
 from mirrors_qa_backend.db.worker import update_worker_last_seen
 from mirrors_qa_backend.enums import SortDirectionEnum, StatusEnum, TestSortColumnEnum
 from mirrors_qa_backend.routes.dependencies import (
     CurrentWorker,
-    DbSession,
     RetrievedTest,
     verify_worker_owns_test,
 )
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/tests", tags=["tests"])
     },
 )
 def list_tests(
-    session: DbSession,
+    session: Annotated[Session, Depends(gen_dbsession)],
     worker_id: Annotated[str | None, Query()] = None,
     country_code: Annotated[str | None, Query(min_length=2, max_length=2)] = None,
     status: Annotated[list[StatusEnum] | None, Query()] = None,
@@ -81,7 +82,7 @@ def get_test(test: RetrievedTest) -> Test:
     dependencies=[Depends(verify_worker_owns_test)],
 )
 def update_test(
-    session: DbSession,
+    session: Annotated[Session, Depends(gen_dbsession)],
     current_worker: CurrentWorker,
     test: RetrievedTest,
     update: schemas.UpdateTestModel,

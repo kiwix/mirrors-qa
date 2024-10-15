@@ -110,3 +110,7 @@ class JWTClaims(BaseModel):
     exp: datetime.datetime
     iat: datetime.datetime
     subject: str
+
+
+class HealthStatus(BaseModel):
+    receiving_tests: bool
