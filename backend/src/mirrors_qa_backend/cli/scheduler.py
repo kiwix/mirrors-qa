@@ -1,4 +1,5 @@
 import datetime
+import random
 import time
 
 from mirrors_qa_backend import logger
@@ -65,7 +66,9 @@ def main(
                     continue
 
                 # Create a test for each mirror from the countries the worker registered
-                for country in idle_worker.countries:
+                countries = list(idle_worker.countries)
+                random.shuffle(countries)
+                for country in countries:
                     for mirror in mirrors:
                         new_test = create_test(
                             session=session,
