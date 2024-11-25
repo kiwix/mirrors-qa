@@ -24,6 +24,7 @@ dependencies = [
     "PyJWT==2.8.0",
     "paramiko==3.4.0",
     "humanfriendly==10.0",
+    "beautifulsoup4==4.12.3",
 ]
 license = {text = "GPL-3.0-or-later"}
 classifiers = [

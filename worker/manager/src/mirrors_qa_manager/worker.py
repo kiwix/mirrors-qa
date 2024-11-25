@@ -14,6 +14,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import pycountry
+from bs4 import BeautifulSoup  # pyright: ignore [reportMissingModuleSource]
 from docker.errors import APIError
 from docker.models.containers import Container, ExecResult
 from docker.types import Mount
@@ -30,6 +31,40 @@ from mirrors_qa_manager.docker import (
     run_container,
 )
 from mirrors_qa_manager.settings import Settings
+
+
+def ipme_data_from_html(html_content: str) -> dict[str, Any]:
+    try:
+        soup = BeautifulSoup(html_content, "html.parser")
+        ip_address = soup.select_one(
+            "p.ip-address"
+        ).text  # pyright: ignore [reportOptionalMemberAccess]
+    except Exception as exc:
+        logger.error(f"Cant parse HTML or find IP: {exc}")
+        return {}
+    try:
+        (
+            _,  # country
+            city,
+            _,  # country_code
+            _,  # latitude
+            _,  # longitude
+            _,  # postal_code
+            organization,
+            _,  # asn
+            isp_name,
+        ) = (code.text for code in soup.select("table tr td code"))
+        organization = isp_name or organization
+    except Exception as exc:
+        logger.error(f"Cant find City/Organization: {exc}")
+        city = None
+        organization = None
+
+    return {
+        "ip": ip_address,
+        "city": city,
+        "organization": organization,
+    }
 
 
 class WgInterfaceStatus(Enum):
@@ -73,10 +108,13 @@ class WorkerManager:
         self.wg_interface = "wg0"
         self.wg_healthcheck_cmd = [
             "curl",
+            "--header",
+            "User-Agent: Mozilla",
             "--interface",
             self.wg_interface,
             "-s",
-            "https://am.i.mullvad.net/json",
+            # "https://am.i.mullvad.net/json",
+            "https://ip.me",
         ]
         self.wg_interface_status = WgInterfaceStatus.DOWN
         # commands for bringing down/up the interface whenever a new configuration
@@ -438,7 +476,10 @@ class WorkerManager:
                     logger.info(
                         f"Successfully retrieved metrics results for test {test_id}"
                     )
-                    ip_data = json.loads(healthcheck_result.output.decode("utf-8"))
+                    # ip_data = json.loads(healthcheck_result.output.decode("utf-8"))
+                    ip_data = ipme_data_from_html(
+                        healthcheck_result.output.decode("utf-8")
+                    )
                     payload = self.merge_data(
                         ip_data=ip_data,
                         metrics_data=json.loads(results),
