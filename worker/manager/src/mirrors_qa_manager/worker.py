@@ -37,8 +37,8 @@ def ipme_data_from_html(html_content: str) -> dict[str, Any]:
     try:
         soup = BeautifulSoup(html_content, "html.parser")
         ip_address = soup.select_one(
-            "p.ip-address"
-        ).text  # pyright: ignore [reportOptionalMemberAccess]
+            "#ip-lookup"
+        ).attrs["value"]  # pyright: ignore [reportOptionalMemberAccess]
     except Exception as exc:
         logger.error(f"Cant parse HTML or find IP: {exc}")
         return {}
@@ -401,7 +401,7 @@ class WorkerManager:
                     conf_fpaths = list(self.base_dir.glob(f"{country_code}*.conf"))
                     if not conf_fpaths:
                         logger.error(
-                            f"Could not find any configuration file for {country_code}"
+                            f"Could not find any configuration file for {country_code} "
                             f"test {test_id}. Skipping test."
                         )
                         continue
