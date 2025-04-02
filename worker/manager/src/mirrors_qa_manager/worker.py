@@ -36,9 +36,9 @@ from mirrors_qa_manager.settings import Settings
 def ipme_data_from_html(html_content: str) -> dict[str, Any]:
     try:
         soup = BeautifulSoup(html_content, "html.parser")
-        ip_address = soup.select_one(
-            "#ip-lookup"
-        ).attrs["value"]  # pyright: ignore [reportOptionalMemberAccess]
+        ip_address = soup.select_one("#ip-lookup").attrs[
+            "value"
+        ]  # pyright: ignore [reportOptionalMemberAccess]
     except Exception as exc:
         logger.error(f"Cant parse HTML or find IP: {exc}")
         return {}
