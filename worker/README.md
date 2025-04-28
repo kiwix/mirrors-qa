@@ -140,7 +140,6 @@ if [ -f /etc/worker.config ]; then
 fi
 
 docker run \
-    -it \
     --rm \
     --name proton-config-dl \
     -v $WORKDIR:/data \
@@ -155,9 +154,37 @@ Make sure it's executable (`chmod +x /usr/local/bin/refresh-proton-configs.sh`)
 
 Have it running daily:
 
+```ini
+# /etc/systemd/system/refresh-proton.service
+[Unit]
+Description=Daily ProtonVPN configurations refresh
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/refresh-proton-configs.sh
+```
+
+```ini
+# /etc/systemd/system/refresh-proton.timer
+[Unit]
+Description=Daily ProtonVPN configurations refresh
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
 ```sh
-apt install -y cron
-ln -s /usr/local/bin/refresh-proton-configs.sh /etc/cron.daily/refresh_proton
+systemctl daemon-reload
+systemctl enable --now refresh-proton.timer
+# test it?
+systemctl start refresh-proton.service
 ```
 
 ## Running
